@@ -27,7 +27,7 @@ export default function Hero() {
             app, sin batería, sin buscar nada.
           </p>
 
-          <div className="mt-[30px] flex flex-wrap items-center gap-[14px]">
+          <div className="mb-9 mt-[30px] flex flex-wrap items-center gap-[14px]">
             <a href="#cta" className="btn-hueso">
               Quiero la mía
             </a>
@@ -37,10 +37,6 @@ export default function Hero() {
             >
               Cómo funciona →
             </a>
-          </div>
-
-          <div className="mb-9 mt-4 font-mono text-[12px] uppercase tracking-[0.16em] text-gris-claro">
-            85.000 Gs
           </div>
         </div>
 

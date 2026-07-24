@@ -5,7 +5,6 @@ import Ritual from "@/components/Ritual";
 import Contenido from "@/components/Contenido";
 import Producto from "@/components/Producto";
 import FePrimero from "@/components/FePrimero";
-import Comunidad from "@/components/Comunidad";
 import CTAFinal from "@/components/CTAFinal";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
@@ -25,7 +24,6 @@ export default function Home() {
         <Contenido />
         <Producto />
         <FePrimero />
-        <Comunidad />
         <CTAFinal />
         <FAQ />
       </main>

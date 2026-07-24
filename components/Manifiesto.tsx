@@ -12,10 +12,10 @@ export default function Manifiesto() {
         </SectionLabel>
 
         <p className="m-0 max-w-[820px] font-archivo text-[31px] font-bold leading-[1.14] tracking-[-0.015em] md:text-[40px]">
-          Un recordatorio, no es solo un accesorio. La llevás para que la fe te
-          acompañe todos los días.{" "}
+          Un recordatorio, no es solo un accesorio. La llevás para que la FE te
+          acompañe todos los días,{" "}
           <span className="text-tierra-oscura">
-            Para que la fe no se te quede en el domingo.
+            para que la FE no quede solo para los domingos.
           </span>
         </p>
 

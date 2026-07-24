@@ -21,7 +21,7 @@ export const RITUAL_STEPS = [
     etiqueta: "El versículo de hoy",
     descripcion:
       "Uno solo, el que toca hoy. En Reina-Valera o en palabras simples, como prefieras.",
-    activo: false,
+    activo: true,
   },
   {
     numero: "03",
@@ -29,7 +29,7 @@ export const RITUAL_STEPS = [
     etiqueta: "Mañana otra vez",
     descripcion:
       "No hace falta acordarse. La pulsera está puesta y el hábito se hace solo.",
-    activo: false,
+    activo: true,
   },
 ] as const;
 
@@ -49,7 +49,7 @@ export const CONTENIDO_TIPOS = [
   {
     titulo: "El versículo de hoy",
     descripcion:
-      "Uno solo por día. De acuerdo a la categoría que prefieras, según el momento de tu vida.",
+      "Uno solo por día, con una lectura breve de la Biblia para acompañarlo. Para leer en la mañana o cuando lo necesites.",
   },
   {
     titulo: "La palabra para lo que estés viviendo",
@@ -57,9 +57,9 @@ export const CONTENIDO_TIPOS = [
       "Ansiedad, tristeza, perdón, familia, trabajo, salud, decisiones, fuerza. Elegís y los versículos siguen esa línea.",
   },
   {
-    titulo: "Buscá, guardá, compartí",
+    titulo: "Buscá lo que necesites",
     descripcion:
-      "Escribí lo que te pasa y encontrá qué dice la Biblia. Guardá lo que te llegó. Compartilo si querés.",
+      "Escribí lo que estás viviendo y en segundos encontrás en la Biblia algo para ese momento. Guardá lo que te llegó y compartilo si querés.",
   },
 ] as const;
 
@@ -70,31 +70,6 @@ export const PRODUCT_SPECS = [
   { label: "Uso", valor: "Entreno, agua, rutina diaria" },
   { label: "Precio", valor: "85.000 Gs" },
 ] as const;
-
-/**
- * Media de comunidad (UGC): imágenes o videos reales.
- * Vacío por defecto: la grilla no se renderiza hasta que haya contenido real.
- */
-export type UgcItem = {
-  tipo: "imagen" | "video";
-  src: string;
-  alt?: string;
-};
-
-export const UGC_MEDIA: UgcItem[] = [];
-
-/**
- * Testimonios reales de la comunidad.
- * Vacío por defecto: el bloque no se renderiza hasta que haya testimonios reales.
- */
-export type Testimonial = {
-  nombre: string;
-  ciudad: string;
-  texto: string;
-  foto?: string;
-};
-
-export const TESTIMONIOS: Testimonial[] = [];
 
 export type FAQ = {
   pregunta: string;
