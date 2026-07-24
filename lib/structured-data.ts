@@ -34,6 +34,7 @@ export const productSchema = {
   offers: {
     "@type": "Offer",
     availability: "https://schema.org/InStock",
+    price: "85000",
     priceCurrency: "PYG",
     url: `${SITE_URL}/#cta`,
   },

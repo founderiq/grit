@@ -10,27 +10,25 @@ export default function FePrimero() {
     <section className="bg-tinta text-hueso">
       <div className="mx-auto max-w-contenido px-[26px] py-seccion md:px-10">
         <SectionLabel dot="tierra" className="mb-[26px]">
-          Por qué fe primero
+          Por qué existe Grit
         </SectionLabel>
 
         <CrossIcon width={34} className="mb-[22px]" />
 
         <div className="max-w-[760px]">
           <p className="m-0 font-archivo text-[27px] font-bold leading-[1.16] tracking-[-0.015em] md:text-[32px]">
-            Empezamos por la fe. No porque Grit sea una marca religiosa, sino
-            porque la fe es donde la pertenencia y el compromiso laten más
-            fuerte.
+            Grit nace de la fe. No como estrategia, como punto de partida.
           </p>
 
           <p className="m-0 mt-[26px] text-[16px] leading-[1.65] text-gris-copy">
-            Es nuestro primer idioma. No el único. Con el tiempo, Grit va a
-            hablar muchos; pero todos dicen lo mismo: vivir con intención.
+            Creemos que la fe no se sostiene sola. Se sostiene cuando la volvés a
+            tocar todos los días, aunque sea treinta segundos entre una cosa y
+            la otra.
           </p>
 
           <p className="m-0 mt-[18px] text-[16px] leading-[1.65] text-gris-claro">
-            Si tu fe te sostiene, esta pulsera la lleva con vos. Si tu camino es
-            otro, también vas a encontrar tu Grit. Acá nadie es mejor que nadie;
-            solo personas que decidieron no vivir en piloto automático.
+            Esta pulsera no te hace mejor cristiano. Solo te acerca Su Palabra en
+            el medio del día, que es donde más falta hace.
           </p>
         </div>
       </div>

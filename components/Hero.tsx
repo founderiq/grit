@@ -23,13 +23,13 @@ export default function Hero() {
           </h1>
 
           <p className="m-0 mt-6 max-w-[380px] text-[17px] leading-[1.55] text-gris-copy">
-            Un recordatorio diario de fe, disciplina y propósito. No un
-            accesorio; una decisión que llevás en la muñeca.
+            Acercás el celular a la cruz y ahí está tu versículo del día. Sin
+            app, sin batería, sin buscar nada.
           </p>
 
-          <div className="mb-9 mt-[30px] flex flex-wrap items-center gap-[14px]">
+          <div className="mt-[30px] flex flex-wrap items-center gap-[14px]">
             <a href="#cta" className="btn-hueso">
-              Conseguí la tuya
+              Quiero la mía
             </a>
             <a
               href="#ritual"
@@ -37,6 +37,10 @@ export default function Hero() {
             >
               Cómo funciona →
             </a>
+          </div>
+
+          <div className="mb-9 mt-4 font-mono text-[12px] uppercase tracking-[0.16em] text-gris-claro">
+            85.000 Gs
           </div>
         </div>
 
@@ -62,7 +66,7 @@ export default function Hero() {
               aria-hidden="true"
             />
             <div className="absolute bottom-[18px] left-[26px] font-mono text-[10.5px] uppercase tracking-[0.18em] text-gris-claro">
-              Tejido premium · Cruz bordada · Toque a contenido
+              Tejido premium · Cruz bordada · Chip NFC
             </div>
           </div>
         </div>

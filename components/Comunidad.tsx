@@ -1,13 +1,11 @@
 import SectionLabel from "./ui/SectionLabel";
-import ImageSlot from "./ui/ImageSlot";
-import TestimonialCard from "./ui/TestimonialCard";
-import { TESTIMONIAL } from "@/lib/content";
-
-/** IDs de los slots de UGC (rellenables por drag & drop). */
-const UGC_SLOTS = [1, 2, 3, 4, 5, 6];
+import UgcGallery from "./ui/UgcGallery";
+import Testimonios from "./ui/Testimonios";
+import { UGC_MEDIA, TESTIMONIOS } from "@/lib/content";
 
 /**
- * Comunidad — fondo tinta. Grilla de UGC (image-slots) + testimonial.
+ * Comunidad — fondo tinta. Grilla de UGC (medios reales) + testimonios.
+ * Ambos bloques solo se renderizan cuando hay contenido real cargado.
  */
 export default function Comunidad() {
   return (
@@ -27,28 +25,11 @@ export default function Comunidad() {
           <span className="text-tierra">compartimos una decisión.</span>
         </p>
 
-        {/* Grilla UGC */}
-        <div className="mb-[10px] grid grid-cols-3 gap-2 md:grid-cols-6">
-          {UGC_SLOTS.map((n) => (
-            <ImageSlot
-              key={n}
-              id={`grit-ugc-${n}`}
-              radius={6}
-              placeholder="UGC"
-              className="aspect-square w-full"
-            />
-          ))}
-        </div>
+        {/* Grilla UGC — solo si hay medios reales */}
+        <UgcGallery items={UGC_MEDIA} />
 
-        {/* Testimonial */}
-        <div className="mt-[18px] max-w-[620px]">
-          <TestimonialCard
-            quote={TESTIMONIAL.quote}
-            nombre={TESTIMONIAL.nombre}
-            ubicacion={TESTIMONIAL.ubicacion}
-            avatarId="grit-testi-avatar"
-          />
-        </div>
+        {/* Testimonios — solo si hay testimonios reales */}
+        <Testimonios items={TESTIMONIOS} />
 
         <div className="mt-[22px] text-center font-mono text-[11px] uppercase tracking-[0.14em] text-gris-medio">
           @grit.py · #FeQueSeUsa

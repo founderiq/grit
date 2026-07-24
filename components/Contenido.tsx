@@ -1,4 +1,5 @@
 import SectionLabel from "./ui/SectionLabel";
+import FechaHoy from "./ui/FechaHoy";
 import { CONTENIDO_EJEMPLO, CONTENIDO_TIPOS } from "@/lib/content";
 
 /**
@@ -24,9 +25,8 @@ export default function Contenido() {
           </h2>
 
           <p className="m-0 mb-10 max-w-[380px] text-[15.5px] leading-[1.6] text-gris-claro">
-            Nada de scroll infinito ni publicidad. El toque abre una sola
-            pantalla: el mensaje del día, pensado para leerse en diez
-            segundos y quedarse el resto.
+            Nada de scroll ni publicidad. Se abre una sola pantalla, tu cable a
+            tierra.
           </p>
 
           <div className="grid gap-7 border-t border-borde pt-8 sm:grid-cols-3 lg:grid-cols-1 lg:gap-6">
@@ -51,7 +51,7 @@ export default function Contenido() {
                 {CONTENIDO_EJEMPLO.etiqueta}
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-gris-claro">
-                {CONTENIDO_EJEMPLO.fecha}
+                <FechaHoy />
               </span>
             </div>
 

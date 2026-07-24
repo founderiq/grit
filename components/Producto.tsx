@@ -46,11 +46,9 @@ export default function Producto() {
           {/* Copy + specs */}
           <div>
             <p className="m-0 mb-7 text-[16.5px] leading-[1.6] text-gris-tinta">
-              Una declaración silenciosa que llevás puesta:{" "}
-              <strong className="font-semibold text-tierra-oscura">
-                decidí dejar de vivir en piloto automático.
-              </strong>{" "}
-              No grita, no se exhibe. Solo te lo recuerda, cada vez que la mirás.
+              La cruz va bordada en hilo, no estampada: no se despega ni se
+              borra. Resiste el agua. Liviana y elástica, hecha para que la uses
+              todos los días y te olvides de que la tenés puesta.
             </p>
 
             <div className="border-t-2 border-tinta">
