@@ -36,7 +36,7 @@ export const productSchema = {
     availability: "https://schema.org/InStock",
     price: "85000",
     priceCurrency: "PYG",
-    url: `${SITE_URL}/#cta`,
+    url: `${SITE_URL}/producto`,
   },
 };
 

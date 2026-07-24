@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import SectionLabel from "./ui/SectionLabel";
 import { LINKS } from "@/lib/content";
 
@@ -28,9 +29,9 @@ export default function Hero() {
           </p>
 
           <div className="mb-9 mt-[30px] flex flex-wrap items-center gap-[14px]">
-            <a href="#cta" className="btn-hueso">
+            <Link href="/producto" className="btn-hueso">
               Quiero la mía
-            </a>
+            </Link>
             <a
               href="#ritual"
               className="font-inter text-[14.5px] font-semibold text-gris-copy transition-colors hover:text-hueso"

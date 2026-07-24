@@ -139,6 +139,104 @@ export const FAQS: FAQ[] = [
   },
 ];
 
+/* ============================================================
+   Página de producto (/producto)
+   ============================================================ */
+
+export type ProductoImagen = { src: string; alt: string };
+
+/** Galería de fotos — reusa las fotos de producto ya existentes en /public/img. */
+export const PRODUCTO_GALERIA: ProductoImagen[] = [
+  { src: "/img/producto.jpg", alt: "Pulseras Grit — Colección Fe" },
+  { src: "/img/producto-muneca.jpg", alt: "Pulsera Grit puesta en la muñeca" },
+  {
+    src: "/img/producto-cruz.jpg",
+    alt: "Detalle de la cruz bordada en la pulsera Grit",
+  },
+  { src: "/img/producto-par.jpg", alt: "Par de pulseras Grit" },
+  { src: "/img/producto-logo.jpg", alt: "Detalle del logo Grit bordado" },
+];
+
+export const PRODUCTO_PASOS = [
+  {
+    titulo: "Ponete la pulsera",
+    descripcion:
+      "Ajustala a tu muñeca. Es elástica, cómoda y de talle único: se adapta a la mayoría.",
+  },
+  {
+    titulo: "Acercá tu celular",
+    descripcion:
+      "Un toque simple, sin apps ni configuraciones. Funciona con la mayoría de los celulares actuales.",
+  },
+  {
+    titulo: "Recibí tu versículo",
+    descripcion:
+      "El versículo del día, con una lectura breve de la Biblia para acompañarlo.",
+  },
+] as const;
+
+export const PRODUCTO_RECORDATORIO_PUNTOS = [
+  "Te ayuda a crear un hábito diario de fe",
+  "Te acerca Su Palabra en el medio del día",
+  "Es simple, rápido y sin fricción",
+] as const;
+
+export const PRODUCTO_BENEFICIOS = [
+  {
+    titulo: "Tu fe en segundos",
+    descripcion:
+      "Un toque y accedés al versículo del día. Sin scroll, sin distracciones.",
+  },
+  {
+    titulo: "Siempre con vos",
+    descripcion: "La llevás puesta todo el día: entreno, trabajo, rutina.",
+  },
+  {
+    titulo: "Sin apps ni batería",
+    descripcion: "Chip NFC pasivo. No se carga, no se actualiza, no falla.",
+  },
+  {
+    titulo: "Un regalo con propósito",
+    descripcion: "Para vos o para alguien que necesita un recordatorio diario.",
+  },
+  {
+    titulo: "Diseño simple",
+    descripcion: "Minimalista, cómoda y pensada para durar en tu día a día.",
+  },
+  {
+    titulo: "Contenido que se renueva",
+    descripcion: "Un versículo distinto cada día, sin que tengas que hacer nada.",
+  },
+] as const;
+
+export const PRODUCTO_INCLUYE = [
+  "Pulsera Grit con chip NFC",
+  "Acceso al versículo y la lectura diaria",
+  "Instrucciones simples de uso",
+  "Packaging premium, listo para regalar",
+  "Soporte por WhatsApp",
+] as const;
+
+export const PRODUCTO_REGALO_ITEMS = [
+  {
+    titulo: "Para vos",
+    descripcion: "Un recordatorio diario de quién decidiste ser.",
+  },
+  {
+    titulo: "Para tu pareja",
+    descripcion: "Una forma simple de acompañar su fe.",
+  },
+  {
+    titulo: "Para un amigo",
+    descripcion: "Un gesto con significado, no solo un objeto.",
+  },
+  {
+    titulo: "Para quien lo necesita",
+    descripcion:
+      "Alguien que atraviesa un momento difícil y necesita un empujón.",
+  },
+] as const;
+
 /** Enlaces de contacto / redes. Centralizados para reusar en CTA y footer. */
 export const LINKS = {
   // Número placeholder de Paraguay — reemplazar por el real.

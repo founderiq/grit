@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 /**
@@ -8,10 +9,10 @@ import { useEffect, useState } from "react";
  * para separar la nav del contenido. En desktop suma enlaces de navegación.
  */
 const NAV_LINKS = [
-  { href: "#ritual", label: "El ritual" },
-  { href: "#contenido", label: "El contenido" },
-  { href: "#producto", label: "Producto" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#ritual", label: "El ritual" },
+  { href: "/#contenido", label: "El contenido" },
+  { href: "/#producto", label: "Producto" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export default function Header() {
@@ -33,7 +34,7 @@ export default function Header() {
       }`}
     >
       <div className="mx-auto flex max-w-contenido items-center justify-between px-[22px] py-4 md:px-10">
-        <a href="#top" aria-label="Grit — inicio" className="flex items-center">
+        <Link href="/" aria-label="Grit — inicio" className="flex items-center">
           <Image
             src="/img/logo-light.svg"
             alt="Grit"
@@ -42,7 +43,7 @@ export default function Header() {
             priority
             className="h-[19px] w-auto"
           />
-        </a>
+        </Link>
 
         <nav className="flex items-center gap-8">
           <ul className="hidden items-center gap-8 md:flex">
@@ -57,9 +58,9 @@ export default function Header() {
               </li>
             ))}
           </ul>
-          <a href="#cta" className="btn-tierra">
+          <Link href="/producto" className="btn-tierra">
             Comprar
-          </a>
+          </Link>
         </nav>
       </div>
     </header>

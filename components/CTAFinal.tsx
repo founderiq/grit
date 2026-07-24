@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LINKS } from "@/lib/content";
 
 /**
@@ -23,14 +24,12 @@ export default function CTAFinal() {
         </p>
 
         <div className="mx-auto mt-9 flex max-w-[320px] flex-col gap-[13px]">
-          <a
-            href={LINKS.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/producto"
             className="rounded-full bg-hueso px-[26px] py-[17px] font-archivo text-[16px] font-bold text-tinta transition-colors hover:bg-[#e2dccf]"
           >
             Conseguí la tuya
-          </a>
+          </Link>
           <a
             href={LINKS.whatsapp}
             target="_blank"
