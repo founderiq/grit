@@ -39,11 +39,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Grit · Fe que acompaña",
+    default: "Pulsera Grit · Tu versículo diario",
     template: "%s · Grit",
   },
   description:
-    "Un recordatorio diario de fe, disciplina y propósito. No un accesorio; una decisión que llevás en la muñeca. Pulsera Grit — Colección Fe. Envíos en todo Paraguay.",
+    "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
   keywords: [
     "Grit",
     "pulsera",
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
     locale: "es_PY",
     url: SITE_URL,
     siteName: "Grit",
-    title: "Grit · Fe que acompaña",
+    title: "Pulsera Grit · Tu versículo diario",
     description:
-      "Un recordatorio diario de fe, disciplina y propósito. Fuerza en cada toque.",
+      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
     images: [
       {
         url: "/img/producto.jpg",
@@ -77,9 +77,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Grit · Fe que acompaña",
+    title: "Pulsera Grit · Tu versículo diario",
     description:
-      "Un recordatorio diario de fe, disciplina y propósito. Fuerza en cada toque.",
+      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
     images: ["/img/producto.jpg"],
   },
   robots: {

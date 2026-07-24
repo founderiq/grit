@@ -23,8 +23,7 @@ export default function Ritual() {
           </h2>
 
           <p className="m-0 mb-10 max-w-[330px] text-[15.5px] leading-[1.6] text-gris-claro">
-            Tocás la pulsera con tu celular y accedés, en segundos, a algo que te
-            recuerda quién decidiste ser.
+            Acercás el celular a la cruz y en segundos tenés la Palabra para hoy.
           </p>
         </div>
 
@@ -42,10 +41,6 @@ export default function Ritual() {
                 ultimo={i === RITUAL_STEPS.length - 1}
               />
             ))}
-          </div>
-
-          <div className="mt-[30px] pl-[64px] font-mono text-[11px] uppercase tracking-[0.14em] text-tierra">
-            ↻ Y mañana, otra vez.
           </div>
         </div>
       </div>

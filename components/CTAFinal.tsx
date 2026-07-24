@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LINKS } from "@/lib/content";
 
 /**
@@ -19,19 +20,16 @@ export default function CTAFinal() {
         </div>
 
         <p className="mx-auto mt-[26px] max-w-[330px] text-[16px] leading-[1.6] text-gris-copy">
-          Sin descuentos agresivos. Sin urgencia inventada. Cuando estés listo,
-          está acá.
+          85.000 Gs. Envíos a todo el país. No te quedes sin la tuya.
         </p>
 
         <div className="mx-auto mt-9 flex max-w-[320px] flex-col gap-[13px]">
-          <a
-            href={LINKS.whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/producto"
             className="rounded-full bg-hueso px-[26px] py-[17px] font-archivo text-[16px] font-bold text-tinta transition-colors hover:bg-[#e2dccf]"
           >
             Conseguí la tuya
-          </a>
+          </Link>
           <a
             href={LINKS.whatsapp}
             target="_blank"
