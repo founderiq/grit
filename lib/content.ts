@@ -157,6 +157,44 @@ export const PRODUCTO_GALERIA: ProductoImagen[] = [
   { src: "/img/producto-logo.jpg", alt: "Detalle del logo Grit bordado" },
 ];
 
+export type ProductoBundle = {
+  id: string;
+  cantidad: number;
+  nombre: string;
+  etiqueta: string;
+  precio: number;
+  badge?: string;
+};
+
+export const PRODUCTO_BUNDLES: ProductoBundle[] = [
+  {
+    id: "1",
+    cantidad: 1,
+    nombre: "1 Pulsera Grit",
+    etiqueta: "Perfecta para empezar tu hábito diario",
+    precio: 85000,
+  },
+  {
+    id: "2",
+    cantidad: 2,
+    nombre: "2 Pulseras Grit",
+    etiqueta: "Una para vos y otra para regalar",
+    precio: 153000,
+    badge: "Más elegido",
+  },
+  {
+    id: "3",
+    cantidad: 3,
+    nombre: "3 Pulseras Grit",
+    etiqueta: "Para vos y toda tu familia",
+    precio: 199000,
+    badge: "Ahorra más",
+  },
+];
+
+/** Rating agregado que se muestra junto al título del producto y en opiniones. */
+export const PRODUCTO_RATING = { promedio: 4.9, total: 23 } as const;
+
 export const PRODUCTO_PASOS = [
   {
     titulo: "Ponete la pulsera",
@@ -237,11 +275,51 @@ export const PRODUCTO_REGALO_ITEMS = [
   },
 ] as const;
 
+export type ProductoOpinion = {
+  quote: string;
+  nombre: string;
+  ubicacion: string;
+  rating: number;
+};
+
+/** Opiniones placeholder — reemplazar por reseñas reales de clientes. */
+export const PRODUCTO_OPINIONES: ProductoOpinion[] = [
+  {
+    quote:
+      "La toco antes de entrenar y antes de orar. Es el mismo gesto: acordarme de quién quiero ser.",
+    nombre: "Nombre Apellido",
+    ubicacion: "Asunción, PY",
+    rating: 5,
+  },
+  {
+    quote:
+      "Pensé que era otro accesorio más. Terminó siendo el recordatorio que más necesitaba en el día.",
+    nombre: "Nombre Apellido",
+    ubicacion: "Luque, PY",
+    rating: 5,
+  },
+  {
+    quote:
+      "Se lo regalé a mi hermana y ahora las dos la usamos. Simple, pero significa mucho.",
+    nombre: "Nombre Apellido",
+    ubicacion: "Ciudad del Este, PY",
+    rating: 5,
+  },
+  {
+    quote:
+      "No hace falta ninguna app. La toco y ya está: un versículo, treinta segundos, listo.",
+    nombre: "Nombre Apellido",
+    ubicacion: "Encarnación, PY",
+    rating: 5,
+  },
+];
+
 /** Enlaces de contacto / redes. Centralizados para reusar en CTA y footer. */
 export const LINKS = {
   // Número placeholder de Paraguay — reemplazar por el real.
   whatsapp:
     "https://wa.me/595000000000?text=Hola%20Grit%2C%20quiero%20conseguir%20mi%20pulsera",
+  whatsappNumero: "595000000000",
   instagram: "https://instagram.com/grit.py",
   contacto: "mailto:hola@grit.py",
 } as const;
