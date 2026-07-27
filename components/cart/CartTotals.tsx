@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { IconShield } from "@/components/ui/ProductoIcons";
 import { CARRITO, fmtGs } from "@/lib/content";
 import type { Totales } from "@/lib/cart";
@@ -12,16 +13,24 @@ import type { Totales } from "@/lib/cart";
  */
 type CartTotalsProps = {
   totales: Totales;
-  /**
-   * Navega al checkout llevando el carrito
-   * (`/checkout?pack={id}&qty={n}&extra=1`).
-   * Lo conecta la FASE 4, cuando exista la ruta. Mientras tanto no se pasa:
-   * el botón no navega a una ruta inexistente ni simula un pedido.
-   */
+  /** Sobrescribe la navegación por defecto a /checkout. */
   onFinalizar?: () => void;
 };
 
 export default function CartTotals({ totales, onFinalizar }: CartTotalsProps) {
+  const router = useRouter();
+
+  /**
+   * Va al checkout sin query params: el checkout lee el carrito persistido.
+   * El carrito no se vacía — el cliente puede volver atrás.
+   */
+  const finalizar = () => {
+    if (onFinalizar) {
+      onFinalizar();
+      return;
+    }
+    router.push("/checkout");
+  };
   return (
     <div className="border-t border-borde-claro bg-hueso px-5 pb-[18px] pt-[14px] lg:px-[26px] lg:pb-[22px] lg:pt-[18px]">
       <div className="flex flex-col gap-[6px] lg:gap-[7px]">
@@ -60,7 +69,7 @@ export default function CartTotals({ totales, onFinalizar }: CartTotalsProps) {
 
       <button
         type="button"
-        onClick={onFinalizar}
+        onClick={finalizar}
         className="btn-naranja mt-3 lg:mt-[14px]"
       >
         {CARRITO.totales.cta}

@@ -3,7 +3,8 @@ import { SITE_URL } from "@/lib/structured-data";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/" },
+    // El checkout no se indexa: es una pantalla transaccional.
+    rules: { userAgent: "*", allow: "/", disallow: "/checkout" },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
   };

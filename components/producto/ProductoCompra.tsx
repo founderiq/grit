@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import SectionLabel from "@/components/ui/SectionLabel";
 import {
   IconStar,
@@ -34,9 +35,8 @@ const ICONOS_TRUST: Record<string, IconComponent> = {
 
 type ProductoCompraProps = {
   /**
-   * Va directo al checkout con el bundle seleccionado, sin pasar por el
-   * carrito. Lo conecta la FASE 4 con `router.push('/checkout?pack=' + id)`.
-   * Hasta entonces no se pasa: el botón no navega a una ruta inexistente.
+   * Sobrescribe la navegación de "Comprar ahora". Por defecto va directo a
+   * `/checkout?pack={id}`, sin pasar por el carrito.
    */
   onComprarAhora?: (bundleId: BundleId) => void;
 };
@@ -138,7 +138,9 @@ function BundleCard({
               {PRODUCTO_COMPRA.envioGratisStrip.titulo}
             </span>
           </span>
-          <span className="rounded-pill bg-tierra px-[10px] py-[4px] font-mono text-[9px] uppercase tracking-[0.1em] text-hueso">
+          {/* Fondo tierra-oscura, no tierra: hueso sobre #C2693F da 3.37:1 y
+              a 9px no califica como texto grande. Sobre #7A3B2B da 7.29:1. */}
+          <span className="rounded-pill bg-tierra-oscura px-[10px] py-[4px] font-mono text-[9px] uppercase tracking-[0.1em] text-hueso">
             {PRODUCTO_COMPRA.envioGratisStrip.pill}
           </span>
         </span>
@@ -159,6 +161,7 @@ export default function ProductoCompra({
   const [bundleId, setBundleId] = useState<BundleId>(BUNDLE_POR_DEFECTO);
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const cart = useCart();
+  const router = useRouter();
 
   const bundle = getBundle(bundleId);
   const totales = calcularTotales(bundle);
@@ -171,6 +174,18 @@ export default function ProductoCompra({
     cart?.agregarBundle(bundleId);
     // Se guarda el disparador para devolverle el foco al cerrar el carrito.
     if (cart) cart.disparadorRef.current = e.currentTarget;
+  };
+
+  /**
+   * Va derecho al checkout con el bundle elegido. No abre el carrito ni lo
+   * modifica: el checkout lee el pack del query param.
+   */
+  const comprarAhora = () => {
+    if (onComprarAhora) {
+      onComprarAhora(bundleId);
+      return;
+    }
+    router.push(`/checkout?pack=${bundleId}`);
   };
 
   /** Flechas mueven la selección dentro del radiogroup (patrón WAI-ARIA). */
@@ -268,7 +283,7 @@ export default function ProductoCompra({
         <button
           type="button"
           className="btn-naranja"
-          onClick={() => onComprarAhora?.(bundleId)}
+          onClick={comprarAhora}
         >
           {PRODUCTO_COMPRA.ctaComprar} – {fmtGs(bundle.precio)}
         </button>

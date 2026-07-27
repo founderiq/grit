@@ -27,7 +27,9 @@ export default function CartExtraItem({ onQuitar }: { onQuitar: () => void }) {
             <p className="m-0 font-archivo text-[13.5px] font-bold leading-[1.25] text-tinta lg:text-[14.5px]">
               {EXTRA.nombre}
             </p>
-            <span className="mt-[6px] inline-flex rounded-pill bg-tierra px-2 py-[3px] font-mono text-[8px] uppercase tracking-[0.08em] text-hueso lg:text-[8.5px]">
+            {/* Fondo tierra-oscura, no tierra: hueso sobre #C2693F da 3.37:1
+                y a 8px no califica como texto grande. Sobre #7A3B2B: 7.29:1. */}
+            <span className="mt-[6px] inline-flex rounded-pill bg-tierra-oscura px-2 py-[3px] font-mono text-[8px] uppercase tracking-[0.08em] text-hueso lg:text-[8.5px]">
               {EXTRA.descuento}
             </span>
           </div>

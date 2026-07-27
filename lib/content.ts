@@ -533,6 +533,131 @@ export const CARRITO = {
   },
 } as const;
 
+/* ------------------------------------------------------------
+   Checkout
+   ------------------------------------------------------------ */
+
+export type ZonaId = "asuncion" | "interior";
+
+export type ZonaEnvio = {
+  id: ZonaId;
+  nombre: string;
+  /** Nombre corto, el que se usa en la línea del resumen. */
+  corto: string;
+  plazo: string;
+  costo: number;
+};
+
+export const ENVIOS: Record<ZonaId, ZonaEnvio> = {
+  asuncion: {
+    id: "asuncion",
+    nombre: "Asunción / Gran Asunción",
+    corto: "Gran Asunción",
+    plazo: "1 a 2 días hábiles",
+    costo: 20_000,
+  },
+  interior: {
+    id: "interior",
+    nombre: "Interior y resto de ciudades",
+    corto: "Interior",
+    plazo: "Encomienda · 2 a 4 días hábiles",
+    costo: 30_000,
+  },
+};
+
+export const ZONA_POR_DEFECTO: ZonaId = "asuncion";
+
+export const VIP = {
+  nombre: "Envío Prioritario VIP",
+  detalle: "Despacho inmediato en 24hs",
+  etiqueta: "Opcional",
+  costo: 10_000,
+} as const;
+
+/** Datos bancarios que se muestran en el checkout y que copia el botón. */
+export const BANCO = [
+  { etiqueta: "Entidad", valor: "ueno bank" },
+  { etiqueta: "Titular", valor: "Emilio Manuel Morales Gauto" },
+  { etiqueta: "Cédula", valor: "4.488.640" },
+  { etiqueta: "Número de cuenta", valor: "619537908" },
+  { etiqueta: "Alias", valor: "4488640" },
+  { etiqueta: "WhatsApp", valor: "0992 363 483" },
+] as const;
+
+export const CHECKOUT = {
+  barra: "Entregamos tu pedido en menos de 1 día · Envíos a todo el país",
+  barraCorta: "Entregamos tu pedido en menos de 1 día",
+  seguridad: "Compra segura",
+  titulo: "Finalizar compra",
+  sub: "Completá tus datos para confirmar tu pedido de forma rápida y segura.",
+
+  seccionDatos: "Datos de contacto y envío",
+  seccionEnvio: "Envío",
+  seccionPago: "Método de pago",
+  seccionResumen: "Resumen del pedido",
+
+  campos: {
+    nombre: {
+      label: "Nombre completo",
+      placeholder: "Tu nombre y apellido",
+      error: "Ingresá tu nombre completo.",
+    },
+    telefono: {
+      label: "Teléfono / WhatsApp",
+      placeholder: "09xx xxx xxx",
+      error: "Ingresá un número de WhatsApp válido.",
+    },
+    ciudad: {
+      label: "Ciudad",
+      placeholder: "Asunción",
+      error: "Ingresá tu ciudad.",
+    },
+    direccion: {
+      label: "Dirección",
+      placeholder: "Calle y número",
+      error: "Ingresá tu dirección.",
+    },
+    ubicacion: {
+      label: "Ubicación exacta (opcional)",
+      placeholder: "Pegá acá el enlace de tu ubicación",
+      ayuda: "Podés copiar y pegar un enlace de Google Maps.",
+      error: "Ingresá un enlace válido o dejá el campo vacío.",
+    },
+  },
+
+  pago: {
+    transferencia: "Transferencia bancaria",
+    sinRecargo: "Sin recargo",
+    tarjeta: "Pago online con tarjeta crédito/débito",
+    tarjetaCorto: "Pago online con tarjeta",
+    tarjetaNota:
+      "Al confirmar tu pedido, te redirigimos a una página de pago segura para completar el pago con tu tarjeta.",
+    copiar: "Copiar datos de la cuenta",
+    copiado: "Datos copiados",
+    copiarError: "No pudimos copiar. Seleccioná los datos manualmente.",
+    instruccion: {
+      inicio: "Para confirmar tu pedido",
+      resto:
+        ", realizá la transferencia y enviá el comprobante por WhatsApp al ",
+      cierre: ". Apenas lo recibimos, despachamos tu GRIT.",
+    },
+  },
+
+  resumen: {
+    subtotal: "Subtotal",
+    ahorro: "Ahorrás",
+    extra: EXTRA.nombre,
+    envio: "Envío",
+    gratis: "Gratis",
+    vip: VIP.nombre,
+    total: "Total del pedido",
+    itemMeta: "Colección Fe · Talle único",
+    cta: "Confirmar pedido",
+  },
+
+  footerLegal: "© 2026 GRIT · Todos los derechos reservados",
+} as const;
+
 export const CART_UPSELL = {
   titulo: "Agregá 1 pulsera extra con",
   destacado: EXTRA.descuento,
