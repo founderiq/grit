@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { MARCA_LIMPIEZA } from "@/components/gracias/LimpiarCarrito";
 import {
   CAMPOS_INICIALES,
   CAMPOS_ORDEN,
   PEDIDO_POR_DEFECTO,
   ZONA_POR_DEFECTO,
-  construirPayload,
   pedidoDesdeParams,
   submitOrder,
+  telefonoNormalizado,
   totalesCheckout,
   validarContacto,
   type CampoId,
@@ -25,9 +26,21 @@ import ShippingOptions from "./ShippingOptions";
 import PaymentMethods from "./PaymentMethods";
 import OrderSummary from "./OrderSummary";
 
+/** Mensajes de error por código devuelto por el endpoint. */
+const MENSAJES_ERROR: Record<string, string> = {
+  sin_conexion:
+    "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
+  payload_invalido:
+    "Revisá los datos del formulario: hay algo que no pudimos validar.",
+  configuracion_incompleta:
+    "No pudimos registrar tu pedido en este momento. Escribinos por WhatsApp al 0992 363 483.",
+  error_interno:
+    "No pudimos registrar tu pedido. Revisá tus datos o escribinos por WhatsApp al 0992 363 483.",
+};
+
 /**
  * Orquesta el checkout: de dónde sale el pedido, el estado del formulario y
- * el envío.
+ * el envío al servidor.
  *
  * Prioridad del pedido, en este orden:
  *   1. Query params válidos — es el camino de "Comprar ahora", que saltea el
@@ -35,10 +48,12 @@ import OrderSummary from "./OrderSummary";
  *   2. Carrito persistido — el camino de "Finalizar compra".
  *   3. Pack de 2 como fallback, para que el resumen nunca quede vacío.
  *
- * El carrito no se vacía al entrar: el cliente puede volver atrás.
+ * El carrito no se vacía al entrar ni al enviar: recién se marca para limpieza
+ * cuando el servidor confirma que el pedido quedó creado.
  */
 export default function CheckoutClient() {
   const params = useSearchParams();
+  const router = useRouter();
   const cart = useCart();
 
   const desdeParams = useMemo(
@@ -66,6 +81,8 @@ export default function CheckoutClient() {
   const [zona, setZona] = useState<ZonaId>(ZONA_POR_DEFECTO);
   const [vip, setVip] = useState(false);
   const [metodo, setMetodo] = useState<MetodoPago>("transferencia");
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
 
   const refs: Record<CampoId, React.RefObject<HTMLInputElement | null>> = {
     nombre: useRef<HTMLInputElement>(null),
@@ -76,6 +93,29 @@ export default function CheckoutClient() {
   };
 
   const totales = totalesCheckout(pedido, zona, vip);
+
+  /* --------------------------------------------------------------------
+     Clave de idempotencia
+
+     Identifica el INTENTO LÓGICO de pedido, no el click. Se mantiene igual
+     mientras el cliente reintenta el mismo pedido — así, si el primer POST
+     llegó al servidor pero la respuesta se perdió, el reintento devuelve el
+     pedido ya creado en vez de duplicarlo.
+
+     Se genera una clave nueva solo cuando cambia el contenido del pedido
+     (pack, cantidad, extra, zona, VIP o método de pago), porque entonces es
+     otro pedido. Corregir un dato de contacto NO la renueva: es el mismo
+     pedido con el domicilio bien escrito.
+     -------------------------------------------------------------------- */
+  const firmaPedido = `${pedido.packId}|${pedido.qty}|${pedido.extra}|${zona}|${vip}|${metodo}`;
+  const claveRef = useRef<{ firma: string; clave: string } | null>(null);
+
+  const obtenerClave = () => {
+    if (claveRef.current?.firma !== firmaPedido) {
+      claveRef.current = { firma: firmaPedido, clave: crypto.randomUUID() };
+    }
+    return claveRef.current.clave;
+  };
 
   const onCampo = (id: CampoId, valor: string) => {
     const siguientes = { ...campos, [id]: valor };
@@ -90,9 +130,11 @@ export default function CheckoutClient() {
     if (intentado) setErrores(validarContacto(campos));
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (enviando) return; // corta el doble submit
     setIntentado(true);
+    setErrorEnvio(null);
 
     const nuevos = validarContacto(campos);
     setErrores(nuevos);
@@ -103,14 +145,45 @@ export default function CheckoutClient() {
       return;
     }
 
-    // Formulario válido. El payload queda armado y listo.
-    const payload = construirPayload(campos, totales, zona, vip, metodo);
+    setEnviando(true);
 
-    // ⚠️ FASE 5: acá se registra el pedido y, si el método es tarjeta, se
-    // redirige a la página de pago externa con la URL que devuelva el
-    // servidor. Hoy `submitOrder` es un stub que no hace nada: no persiste,
-    // no redirige y no muestra confirmación. Ver lib/checkout.ts.
-    void submitOrder(payload);
+    const resultado = await submitOrder({
+      idempotencyKey: obtenerClave(),
+      packId: pedido.packId,
+      qty: pedido.qty,
+      extra: pedido.extra,
+      zona,
+      vip,
+      metodoPago: metodo,
+      // Sin importes: el servidor recalcula todo desde el catálogo.
+      contacto: {
+        ...campos,
+        telefono: telefonoNormalizado(campos.telefono),
+      },
+    });
+
+    if (!resultado.ok) {
+      // El carrito queda intacto y la clave se conserva para reintentar.
+      setEnviando(false);
+      setErrorEnvio(MENSAJES_ERROR[resultado.codigo] ?? MENSAJES_ERROR.error_interno!);
+      return;
+    }
+
+    // El pedido existe. Recién ahora se marca el carrito para limpieza; lo
+    // borra /gracias al cargar. Ver components/gracias/LimpiarCarrito.tsx.
+    try {
+      window.localStorage.setItem(
+        MARCA_LIMPIEZA,
+        resultado.pedido.confirmationToken,
+      );
+    } catch {
+      // localStorage bloqueado: el pedido igual se creó.
+    }
+
+    // FASE 5B.2: cuando existan los links de pago, el método `tarjeta` va a
+    // redirigir acá a la URL externa que devuelva el servidor. Por ahora las
+    // dos ramas van a /gracias, que muestra el pago online como pendiente.
+    router.push(resultado.pedido.redirectUrl);
   };
 
   return (
@@ -149,7 +222,8 @@ export default function CheckoutClient() {
           totales={totales}
           zona={zona}
           vip={vip}
-          onConfirmar={() => {}}
+          enviando={enviando}
+          error={errorEnvio}
           className="mt-9 lg:sticky lg:top-5 lg:mt-0"
         />
       </div>

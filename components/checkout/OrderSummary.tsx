@@ -15,8 +15,10 @@ type OrderSummaryProps = {
   zona: ZonaId;
   vip: boolean;
   compacto?: boolean;
-  onConfirmar?: () => void;
+  /** Muestra el CTA. La versión compacta de mobile no lo lleva. */
   enviando?: boolean;
+  /** Mensaje de error del envío, encima del CTA. */
+  error?: string | null;
   className?: string;
 };
 
@@ -25,8 +27,8 @@ export default function OrderSummary({
   zona,
   vip,
   compacto = false,
-  onConfirmar,
   enviando = false,
+  error = null,
   className = "",
 }: OrderSummaryProps) {
   const nombre =
@@ -146,15 +148,26 @@ export default function OrderSummary({
         </span>
       </div>
 
-      {onConfirmar && (
-        <button
-          type="submit"
-          onClick={onConfirmar}
-          disabled={enviando}
-          className="btn-naranja mt-5 disabled:cursor-not-allowed disabled:opacity-75"
-        >
-          {CHECKOUT.resumen.cta}
-        </button>
+      {!compacto && (
+        <>
+          {error && (
+            <p
+              role="alert"
+              className="m-0 mt-5 text-[12.5px] leading-[1.5] text-tierra-oscura"
+            >
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={enviando}
+            aria-busy={enviando || undefined}
+            className="btn-naranja mt-5 disabled:cursor-not-allowed disabled:opacity-75"
+          >
+            {enviando ? CHECKOUT.resumen.ctaEnviando : CHECKOUT.resumen.cta}
+          </button>
+        </>
       )}
     </div>
   );

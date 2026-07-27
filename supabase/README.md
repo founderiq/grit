@@ -17,9 +17,10 @@ nombres del dominio de pedidos y se evitan nombres genéricos (`items`, `users`,
 
 ## Migraciones
 
-| Archivo | Contenido |
-|---|---|
-| `migrations/20260727_grit_ecommerce_foundation.sql` | Fundación del ecommerce: pedidos, ítems, historial de estados y links de pago |
+| Archivo | Contenido | Estado |
+|---|---|---|
+| `migrations/20260727_grit_ecommerce_foundation.sql` | Fundación del ecommerce: pedidos, ítems, historial de estados y links de pago | ✅ aplicada |
+| `migrations/20260728_grit_orders_transactional.sql` | `confirmation_token`, `idempotency_key` y la función `create_order` | ⏳ pendiente de aplicar |
 
 ---
 
@@ -219,28 +220,93 @@ Además, como defensa en profundidad, la migración:
 
 ### Qué clave se usa en el servidor
 
-Los pedidos se insertan **exclusivamente** desde un endpoint server-side usando
-la **`SUPABASE_SERVICE_ROLE_KEY`**.
+Los pedidos se insertan y se leen **exclusivamente** desde el servidor, con dos
+variables de entorno:
 
-- Esa clave **nunca** se expone al navegador.
-- **Nunca** va en una variable con prefijo `NEXT_PUBLIC_`.
-- Se configura como variable de entorno del servidor (en Vercel, como
-  *Environment Variable* sin exposición al cliente).
-- La `anon key` no sirve para escribir en estas tablas, por diseño: aunque se
-  filtrara, no puede leer ni escribir pedidos.
+| Variable | Para qué |
+|---|---|
+| `SUPABASE_URL` | URL del proyecto |
+| `SUPABASE_SECRET_KEY` | Clave con permisos de `service_role` |
+
+- Ninguna de las dos lleva prefijo `NEXT_PUBLIC_`, así que Next **no las expone**
+  al navegador.
+- Solo las lee `lib/supabase-admin.ts`, que empieza con `import "server-only"`:
+  si algún componente de cliente llegara a importarlo, **el build falla**.
+- Los únicos archivos que importan ese módulo son `app/api/pedidos/route.ts` y
+  `app/gracias/page.tsx`, ambos de servidor.
+- La `anon key` no sirve para leer ni escribir en estas tablas, por diseño:
+  aunque se filtrara, no puede tocar pedidos.
 
 Este archivo no contiene ninguna credencial, ni la URL del proyecto, ni la anon
 key, ni la service role key, ni tokens, ni links de pago reales.
 
 ---
 
+## Creación transaccional de pedidos (`create_order`)
+
+La segunda migración agrega dos columnas a `orders` y la función que usa el
+endpoint.
+
+| Columna | Para qué |
+|---|---|
+| `confirmation_token` | UUID único que abre `/gracias`. Se usa en lugar de `order_number` porque ese es secuencial y adivinable |
+| `idempotency_key` | UUID único del intento lógico de pedido |
+
+### Atomicidad
+
+`public.create_order(...)` inserta el pedido, sus ítems y la primera entrada del
+historial. El cuerpo de una función plpgsql corre dentro de la transacción del
+llamador, así que **si falla un ítem o el historial, se revierte también el
+pedido**: nunca queda un pedido a medio crear. Verificado en local forzando un
+ítem inválido: la tabla `orders` no cambió y la `idempotency_key` quedó libre
+para reintentar.
+
+### Idempotencia
+
+1. Antes de insertar, la función busca `idempotency_key`. Si ya existe,
+   devuelve el pedido existente con `is_duplicate = true`.
+2. Si dos llamadas concurrentes pasan juntas esa comprobación, la constraint
+   `UNIQUE` hace fallar a una. Ese `unique_violation` se captura y se resuelve
+   releyendo el pedido que ganó.
+
+Resultado: **una misma clave nunca produce dos pedidos**, ni siquiera en
+carrera. Verificado con 20 llamadas concurrentes usando la misma clave: se creó
+un solo pedido (una respuesta con `is_duplicate=false` y 19 con `true`), con un
+solo ítem y una sola entrada de historial.
+
+El navegador genera la clave y la reutiliza mientras reintenta el mismo pedido;
+solo la renueva si cambia el contenido (pack, cantidad, extra, zona, VIP o
+método de pago). Corregir un dato de contacto no la renueva.
+
+### Recálculo de precios en el servidor
+
+La función **no** valida reglas de negocio ni recalcula precios: recibe valores
+ya calculados. Quien los calcula es `lib/pedidos.ts`, en el endpoint, a partir
+del catálogo de `lib/content.ts`. Del navegador solo se acepta *qué* quiere
+comprar el cliente y su contacto; cualquier `total`, `subtotal` o precio que
+venga en el request se ignora por completo.
+
+### Estrategia de limpieza del carrito
+
+El carrito **no** se borra al enviar el formulario. La secuencia es:
+
+1. El endpoint responde OK → el checkout escribe `grit:cart:limpiar` en
+   `localStorage` con el token del pedido.
+2. `/gracias` carga y encuentra el pedido → `<LimpiarCarrito />` borra
+   `grit:cart:v1` y la marca.
+3. Si el endpoint falla, la marca nunca se escribe y el carrito queda intacto
+   para reintentar.
+
+Un refresh de `/gracias` no puede crear otro pedido: la página solo lee. Y como
+la marca se borra en la primera limpieza, un refresh posterior no toca nada.
+
+---
+
 ## Qué queda pendiente para la Fase 5B
 
-- Endpoint server-side de creación de pedidos, con la service role.
-- Conexión real desde el checkout (`submitOrder` en `lib/checkout.ts` es hoy un
-  stub documentado que no persiste ni redirige).
-- Carga de los links reales en `payment_links` y redirección al pago externo.
-- Página `/gracias`.
+- Carga de los links reales en `payment_links` y redirección al pago externo
+  para el método `tarjeta` (hoy va a `/gracias`, que muestra el pago online
+  como pendiente).
 - Notificación por Telegram.
 - Panel administrador y Supabase Auth, con las políticas de RLS para
   `authenticated` acotadas por rol.
@@ -256,8 +322,10 @@ Desde el **SQL Editor** de Supabase:
 
 1. Entrá al proyecto en [supabase.com](https://supabase.com) → **SQL Editor**.
 2. **New query**.
-3. Copiá el contenido completo de
-   `supabase/migrations/20260727_grit_ecommerce_foundation.sql` y pegalo.
+3. Copiá el contenido completo de la migración que toque aplicar y pegalo.
+   Las migraciones se aplican **en orden de nombre**: primero
+   `20260727_grit_ecommerce_foundation.sql` (ya aplicada), después
+   `20260728_grit_orders_transactional.sql`.
 4. **Run**.
 5. Verificá en **Table Editor** que aparecen las cinco tablas: `orders`,
    `order_items`, `order_status_history`, `payment_links` y

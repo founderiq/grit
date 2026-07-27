@@ -653,9 +653,51 @@ export const CHECKOUT = {
     total: "Total del pedido",
     itemMeta: "Colección Fe · Talle único",
     cta: "Confirmar pedido",
+    ctaEnviando: "Confirmando…",
   },
 
   footerLegal: "© 2026 GRIT · Todos los derechos reservados",
+} as const;
+
+/* ------------------------------------------------------------
+   Página de confirmación (/gracias)
+   ------------------------------------------------------------ */
+
+export const GRACIAS = {
+  eyebrow: "Confirmación",
+  titulo: "¡Pedido registrado!",
+  mensajeTransferencia:
+    "Recibimos correctamente tu pedido. Para confirmarlo, realizá la transferencia y enviá el comprobante por WhatsApp.",
+  mensajeTarjeta:
+    "Recibimos correctamente tu pedido. El pago online todavía está pendiente.",
+  etiquetas: {
+    numero: "Número de pedido",
+    total: "Total del pedido",
+    metodo: "Método de pago",
+    envio: "Envío",
+    estadoPago: "Estado del pago",
+    productos: "Tu pedido",
+  },
+  metodos: {
+    transferencia: "Transferencia bancaria",
+    tarjeta: "Tarjeta de crédito/débito",
+  } as Record<string, string>,
+  estadosPago: {
+    pendiente_transferencia: "Pendiente de transferencia",
+    pendiente_pago_online: "Pendiente de pago online",
+    pagado: "Pagado",
+    fallido: "Fallido",
+    cancelado: "Cancelado",
+  } as Record<string, string>,
+  ctaComprobante: "Enviar comprobante por WhatsApp",
+  ctaInicio: "Volver al inicio",
+  noEncontrado: {
+    eyebrow: "Confirmación",
+    titulo: "No encontramos ese pedido",
+    mensaje:
+      "El enlace puede haber expirado o estar incompleto. Si ya hiciste tu pedido, escribinos por WhatsApp y lo verificamos.",
+    cta: "Escribinos por WhatsApp",
+  },
 } as const;
 
 export const CART_UPSELL = {

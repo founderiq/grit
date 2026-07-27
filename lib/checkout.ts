@@ -232,96 +232,88 @@ export async function copiarAlPortapapeles(texto: string): Promise<boolean> {
 }
 
 /* ------------------------------------------------------------
-   Payload del pedido
+   Método de pago
    ------------------------------------------------------------ */
 
 export type MetodoPago = "transferencia" | "tarjeta";
 
-export type OrderPayload = {
-  contacto: {
-    nombre: string;
-    telefono: string;
-    ciudad: string;
-    direccion: string;
-    ubicacion?: string;
-  };
-  items: { sku: string; cantidad: number; precioUnitario: number }[];
-  envio: { zona: ZonaId; costo: number; gratis: boolean; vip: boolean };
-  total: number;
-  metodoPago: MetodoPago;
-};
-
 /**
- * Arma el payload que la FASE 5 va a mandar al endpoint de pedidos.
- * Es una función pura: no hace red, no persiste y no conoce ninguna URL.
+ * Normaliza el teléfono antes de mandarlo al servidor: sin espacios, puntos,
+ * guiones ni paréntesis. El servidor lo vuelve a validar igual.
  */
-export function construirPayload(
-  campos: CamposContacto,
-  totales: TotalesCheckout,
-  zona: ZonaId,
-  vip: boolean,
-  metodoPago: MetodoPago,
-): OrderPayload {
-  const items = [
-    {
-      sku: `pack-${totales.bundle.id}`,
-      cantidad: totales.qty,
-      precioUnitario: totales.bundle.precio,
-    },
-  ];
-
-  if (totales.extra) {
-    items.push({ sku: "pulsera-extra", cantidad: 1, precioUnitario: 70_000 });
-  }
-
-  const ubicacion = campos.ubicacion.trim();
-
-  return {
-    contacto: {
-      nombre: campos.nombre.trim(),
-      telefono: normalizarTelefono(campos.telefono),
-      ciudad: campos.ciudad.trim(),
-      direccion: campos.direccion.trim(),
-      ...(ubicacion ? { ubicacion } : {}),
-    },
-    items,
-    envio: {
-      zona,
-      costo: totales.envio,
-      gratis: totales.envioGratis,
-      vip,
-    },
-    total: totales.total,
-    metodoPago,
-  };
-}
+export const telefonoNormalizado = (v: string) => normalizarTelefono(v);
 
 /* ------------------------------------------------------------
-   Punto de conexión de la FASE 5
+   Envío del pedido al servidor
    ------------------------------------------------------------ */
 
+/** Lo que el navegador manda al endpoint. Sin un solo importe. */
+export type SolicitudPedido = {
+  idempotencyKey: string;
+  packId: BundleId;
+  qty: number;
+  extra: boolean;
+  zona: ZonaId;
+  vip: boolean;
+  metodoPago: MetodoPago;
+  contacto: CamposContacto;
+};
+
+export type PedidoCreado = {
+  orderNumber: string;
+  confirmationToken: string;
+  total: number;
+  paymentMethod: MetodoPago;
+  paymentStatus: string;
+  redirectUrl: string;
+};
+
+export type ResultadoEnvio =
+  | { ok: true; pedido: PedidoCreado }
+  | { ok: false; codigo: string };
+
 /**
- * ⚠️ STUB — LA FASE 5 CONECTA ACÁ.
+ * Registra el pedido en `POST /api/pedidos`.
  *
- * En la fase 5 esta función debe, en este orden:
- *   1. POSTear `payload` al endpoint de pedidos y esperar la respuesta con el
- *      id/referencia del pedido. El pedido tiene que quedar registrado ANTES
- *      de cualquier redirección, para que exista aunque el pago se abandone.
- *   2. Persistir el estado `pendiente_transferencia` o `pendiente_pago_online`
- *      según `payload.metodoPago`, y marcarlo `pagado` desde el callback del
- *      proveedor.
- *   3. Devolver la `paymentUrl` del servidor cuando el método es `tarjeta`.
- *      La URL NUNCA se construye en el cliente, y la referencia del pedido
- *      viaja con ella para que el proveedor pueda reconciliar.
- *   4. Proteger contra doble submit con la referencia del pedido.
+ * El cuerpo lleva **solo la configuración elegida y el contacto**: ni
+ * subtotal, ni ahorro, ni envío, ni total, ni precios. El servidor recalcula
+ * todo desde el catálogo, así que manipular importes en el navegador no
+ * cambia lo que se guarda.
  *
- * Hoy no existe endpoint, ni proveedor de pagos, ni base de datos, así que
- * esta función no hace nada a propósito: no registra pedidos, no simula
- * éxito, no redirige y no inventa URLs. El checkout valida el formulario y
- * arma el payload; ahí termina el alcance de la fase 4.
+ * La respuesta llega con el pedido ya creado y `redirectUrl` apuntando a
+ * /gracias con el token de confirmación.
  */
-export async function submitOrder(payload: OrderPayload): Promise<void> {
-  void payload;
+export async function submitOrder(
+  solicitud: SolicitudPedido,
+): Promise<ResultadoEnvio> {
+  let respuesta: Response;
+  try {
+    respuesta = await fetch("/api/pedidos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(solicitud),
+    });
+  } catch {
+    // Sin red, o el request se cortó antes de llegar.
+    return { ok: false, codigo: "sin_conexion" };
+  }
+
+  let cuerpo: unknown = null;
+  try {
+    cuerpo = await respuesta.json();
+  } catch {
+    cuerpo = null;
+  }
+
+  if (!respuesta.ok) {
+    const codigo =
+      typeof cuerpo === "object" && cuerpo !== null && "error" in cuerpo
+        ? String((cuerpo as { error: unknown }).error)
+        : "error_interno";
+    return { ok: false, codigo };
+  }
+
+  return { ok: true, pedido: cuerpo as PedidoCreado };
 }
 
 export { ZONA_POR_DEFECTO };
