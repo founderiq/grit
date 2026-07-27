@@ -109,6 +109,18 @@
   }
 }
 
+/* Entrada del cart drawer: desliza desde la derecha, sin rebote.
+   Se aplica con `motion-safe:`, así que bajo prefers-reduced-motion el panel
+   aparece directo. */
+@keyframes grit-drawer {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes grit-pulso {
   0% {
     box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.55);

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Header, { type NavLink } from "@/components/Header";
 import Footer from "@/components/Footer";
 import FAQ from "@/components/FAQ";
+import CartRoot from "@/components/cart/CartRoot";
+import CartButton from "@/components/cart/CartButton";
 import ProductoPrincipal from "@/components/producto/ProductoPrincipal";
 import ProductoVidaReal from "@/components/producto/ProductoVidaReal";
 import ProductoPasos from "@/components/producto/ProductoPasos";
@@ -39,11 +41,12 @@ const NAV_PRODUCTO: NavLink[] = [
  */
 export default function ProductoPage() {
   return (
-    <>
+    <CartRoot>
       <Header
         variant="light"
         nav={NAV_PRODUCTO}
         cta={{ href: "#comprar", label: "Comprar" }}
+        cartSlot={<CartButton />}
       />
       <main>
         <ProductoPrincipal />
@@ -58,6 +61,6 @@ export default function ProductoPage() {
         <ProductoCTAFinal />
       </main>
       <Footer variant="producto" />
-    </>
+    </CartRoot>
   );
 }

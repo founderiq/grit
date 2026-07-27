@@ -23,6 +23,7 @@ import {
   type ProductoBundle,
 } from "@/lib/content";
 import { calcularTotales, getBundle } from "@/lib/cart";
+import { useCart } from "@/context/CartContext";
 
 const ICONOS_TRUST: Record<string, IconComponent> = {
   truck: IconTruck,
@@ -33,14 +34,9 @@ const ICONOS_TRUST: Record<string, IconComponent> = {
 
 type ProductoCompraProps = {
   /**
-   * Agrega el bundle seleccionado al carrito y abre el drawer.
-   * Lo conecta la FASE 3 con `cart.addBundle(id)` — el reducer del carrito ya
-   * abre el drawer, así que acá no se navega nunca.
-   */
-  onAgregarAlCarrito?: (bundleId: BundleId) => void;
-  /**
    * Va directo al checkout con el bundle seleccionado, sin pasar por el
    * carrito. Lo conecta la FASE 4 con `router.push('/checkout?pack=' + id)`.
+   * Hasta entonces no se pasa: el botón no navega a una ruta inexistente.
    */
   onComprarAhora?: (bundleId: BundleId) => void;
 };
@@ -158,14 +154,24 @@ function BundleCard({
  * concepto exclusivo del carrito.
  */
 export default function ProductoCompra({
-  onAgregarAlCarrito,
   onComprarAhora,
 }: ProductoCompraProps) {
   const [bundleId, setBundleId] = useState<BundleId>(BUNDLE_POR_DEFECTO);
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const cart = useCart();
 
   const bundle = getBundle(bundleId);
   const totales = calcularTotales(bundle);
+
+  /**
+   * Agrega el bundle elegido y abre el drawer — el reducer del carrito hace
+   * las dos cosas. Nunca navega al checkout.
+   */
+  const agregarAlCarrito = (e: React.MouseEvent<HTMLButtonElement>) => {
+    cart?.agregarBundle(bundleId);
+    // Se guarda el disparador para devolverle el foco al cerrar el carrito.
+    if (cart) cart.disparadorRef.current = e.currentTarget;
+  };
 
   /** Flechas mueven la selección dentro del radiogroup (patrón WAI-ARIA). */
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -255,7 +261,7 @@ export default function ProductoCompra({
         <button
           type="button"
           className="btn-naranja-outline"
-          onClick={() => onAgregarAlCarrito?.(bundleId)}
+          onClick={agregarAlCarrito}
         >
           {PRODUCTO_COMPRA.ctaAgregar}
         </button>

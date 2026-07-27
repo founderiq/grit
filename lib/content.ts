@@ -501,6 +501,47 @@ export const FAQ_PRODUCTO: FAQ[] = [
 export const FAQ_PRODUCTO_NOTA =
   "¿Tenés otra duda? Escribinos por WhatsApp y te respondemos en el día.";
 
+/* ------------------------------------------------------------
+   Carrito lateral
+   ------------------------------------------------------------ */
+
+export const CARRITO = {
+  titulo: "Tu carrito",
+  cerrar: "Cerrar carrito",
+  itemMeta: "Colección Fe · Talle único",
+  quitar: "Quitar",
+  thumb: "/img/producto.jpg",
+  progreso: {
+    completo: "¡Tenés envío gratis en tu pedido!",
+    falta1: "Solo te falta agregar una pulsera más para tener envío gratis",
+    faltaN: (n: number) => `Te faltan ${n} pulseras para tener envío gratis`,
+    contador: (n: number) => `${n} de ${ENVIO_GRATIS_DESDE} pulseras`,
+    etiqueta: "Envío gratis",
+  },
+  totales: {
+    subtotal: "Subtotal",
+    ahorras: "Ahorrás",
+    total: "Total",
+    nota: "Envío calculado en el checkout",
+    cta: "Finalizar compra",
+    seguridad: "Compra segura",
+  },
+  vacio: {
+    titulo: "Tu carrito está vacío",
+    sub: "Elegí tu pack y empezá tu hábito diario.",
+    cta: "Ver los packs",
+  },
+} as const;
+
+export const CART_UPSELL = {
+  titulo: "Agregá 1 pulsera extra con",
+  destacado: EXTRA.descuento,
+  sub: "Sumás una más y desbloqueás más valor por menos.",
+  cta: "Agregar",
+  thumb: "/img/producto-cruz.jpg",
+  quitarLabel: "Quitar Pulsera GRIT extra",
+} as const;
+
 /** Enlaces de contacto / redes. Centralizados para reusar en CTA y footer. */
 export const LINKS = {
   whatsapp:

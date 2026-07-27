@@ -26,19 +26,18 @@ type HeaderProps = {
   nav?: NavLink[];
   cta?: { href: string; label: string };
   /**
-   * Botón de carrito con contador. Se pasa solo en /producto y /checkout.
-   * Lo conecta la FASE 3, cuando exista CartContext: `{ count, onOpen }`.
-   * Mientras no se pase no se renderiza ningún control de carrito — no se
-   * deja en pantalla un botón que no hace nada.
+   * Botón de carrito, ya renderizado. Solo lo pasan /producto y /checkout;
+   * la landing no lo lleva. Se recibe como slot en lugar de leer el contexto
+   * acá para que el módulo del carrito no entre en el bundle de la landing.
    */
-  cart?: { count: number; onOpen: () => void };
+  cartSlot?: React.ReactNode;
 };
 
 export default function Header({
   variant = "dark",
   nav = NAV_LANDING,
   cta = { href: "/producto", label: "Comprar" },
-  cart,
+  cartSlot,
 }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -83,33 +82,7 @@ export default function Header({
               ))}
             </ul>
 
-            {cart && (
-              <button
-                type="button"
-                onClick={cart.onOpen}
-                aria-label={`Abrir carrito, ${cart.count} artículos`}
-                className="relative flex h-11 w-11 items-center justify-center text-tinta"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width={20}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.6}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M5 7h14l-1.2 11.1A2 2 0 0 1 15.8 20H8.2a2 2 0 0 1-2-1.9L5 7Z" />
-                  <path d="M9 7V5.6A3 3 0 0 1 12 3a3 3 0 0 1 3 2.6V7" />
-                </svg>
-                {cart.count > 0 && (
-                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-pill bg-tierra px-1 font-mono text-[9px] text-hueso">
-                    {cart.count}
-                  </span>
-                )}
-              </button>
-            )}
+            {cartSlot}
 
             {/* Botón `sm` del sistema. specs/05 lo admite a 30px solo en el
                 header de desktop; en mobile se promueve a 44px de alto. */}
