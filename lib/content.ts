@@ -68,7 +68,7 @@ export const PRODUCT_SPECS = [
   { label: "Símbolo", valor: "Cruz bordada en hilo, no estampada" },
   { label: "Color y talle", valor: "Negro, talle único elástico" },
   { label: "Uso", valor: "Entreno, agua, rutina diaria" },
-  { label: "Precio", valor: "85.000 Gs" },
+  { label: "Precio", valor: "115.000 Gs" },
 ] as const;
 
 export type FAQ = {
