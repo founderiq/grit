@@ -3,10 +3,25 @@ import { LINKS } from "@/lib/content";
 
 /**
  * Footer — fondo tinta. Logo, tagline, enlaces y copyright.
+ *
+ * `variant="landing"` (default) reproduce el footer previo a la
+ * parametrización. `variant="producto"` usa la línea legal y el enlace de
+ * WhatsApp aprobados en el Product Experience handoff.
  */
-export default function Footer() {
+type FooterProps = { variant?: "landing" | "producto" };
+
+export default function Footer({ variant = "landing" }: FooterProps) {
+  const esProducto = variant === "producto";
+
   return (
-    <footer className="border-t border-borde bg-tinta text-hueso">
+    /* El scope de superficie se aplica solo en la variante de ecommerce: la
+       landing se conserva exactamente como está hasta que se apruebe su
+       retrofit. */
+    <footer
+      className={`border-t border-borde bg-tinta text-hueso ${
+        esProducto ? "grit-on-dark" : ""
+      }`}
+    >
       <div className="mx-auto max-w-contenido px-[26px] pb-[38px] pt-[46px] md:px-10">
         <Image
           src="/img/logo-light.svg"
@@ -37,20 +52,24 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="transition-colors hover:text-hueso"
           >
-            WhatsApp
+            {esProducto ? `WhatsApp · ${LINKS.whatsappVisible}` : "WhatsApp"}
           </a>
-          <a
-            href={LINKS.contacto}
-            className="transition-colors hover:text-hueso"
-          >
-            Contacto
-          </a>
+          {!esProducto && (
+            <a
+              href={LINKS.contacto}
+              className="transition-colors hover:text-hueso"
+            >
+              Contacto
+            </a>
+          )}
         </div>
 
         {/* Corrección de contraste #3 (specs/11): gris-oscuro #5C564D sobre
             tinta da 2.59:1. gris-medio #8C857A sube a 5.15:1, AA ✓. */}
         <div className="mt-[26px] border-t border-borde pt-5 font-mono text-[10.5px] tracking-[0.08em] text-gris-medio">
-          © 2026 Grit · Paraguay · Vivir con intención.
+          {esProducto
+            ? "© 2026 GRIT · Fe que se usa. Fuerza en cada toque."
+            : "© 2026 Grit · Paraguay · Vivir con intención."}
         </div>
       </div>
     </footer>

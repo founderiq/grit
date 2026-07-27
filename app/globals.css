@@ -87,12 +87,12 @@
   }
 
   /* CTA secundario delineado — Agregar al carrito.
-     ⚠️ CONTRASTE PENDIENTE DE DECISIÓN: el label tierra #C2693F sobre hueso
-     da 3.37:1 y a 16px bold no califica como texto grande (AA pide 4.5:1).
-     Se implementa con el valor aprobado en el handoff; la alternativa es
-     tierra-oscura #7A3B2B (7.29:1) para el texto, conservando el borde. */
+     Corrección de contraste aprobada: el borde conserva el tierra #C2693F del
+     handoff (3.37:1 en reposo / 3.03:1 en hover, sobre el umbral de 3:1 para
+     UI) y el texto pasa a tierra-oscura #7A3B2B, que da 7.29:1 en reposo y
+     6.56:1 sobre el hover — AA en ambos estados. */
   .btn-naranja-outline {
-    @apply flex w-full items-center justify-center rounded-pill border-heavy border-tierra bg-transparent px-[26px] py-[17px] font-archivo text-[16px] font-bold leading-none text-tierra transition-colors duration-control ease-grit hover:bg-tierra/10;
+    @apply flex w-full items-center justify-center rounded-pill border-heavy border-tierra bg-transparent px-[26px] py-[17px] font-archivo text-[16px] font-bold leading-none text-tierra-oscura transition-colors duration-control ease-grit hover:bg-tierra/10;
   }
 
   @media (max-width: 420px) {
@@ -100,5 +100,21 @@
     .btn-naranja-outline {
       @apply px-[22px] py-[15px] text-[15px];
     }
+  }
+
+  /* Punto pulsante del badge de entrega. Es la única animación de la página.
+     La regla global de prefers-reduced-motion la neutraliza. */
+  .grit-pulso {
+    animation: grit-pulso 2s infinite;
+  }
+}
+
+@keyframes grit-pulso {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(74, 124, 89, 0);
   }
 }

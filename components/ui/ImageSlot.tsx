@@ -127,8 +127,12 @@ export default function ImageSlot({
       }}
       onDragLeave={() => setDragActivo(false)}
       onDrop={onDrop}
-      className={`group relative flex cursor-pointer items-center justify-center overflow-hidden bg-[#211D19]/60 outline-none ring-tierra transition-all focus-visible:ring-2 ${
-        dragActivo ? "ring-2" : ""
+      /* El foco lo aporta la regla global :focus-visible con outline: antes
+         se suprimía con `outline-none` y se reemplazaba por un `ring`, que en
+         Tailwind compila a box-shadow. El estado drag-over conserva su anillo
+         tierra, ahora también como outline para no introducir sombras. */
+      className={`group relative flex cursor-pointer items-center justify-center overflow-hidden bg-[#211D19]/60 transition-colors ${
+        dragActivo ? "outline outline-2 outline-offset-0 outline-tierra" : ""
       } ${className}`}
       style={{ borderRadius }}
     >

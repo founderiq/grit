@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     template: "%s · Grit",
   },
   description:
-    "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
+    "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 115.000 Gs. Envíos a todo Paraguay.",
   keywords: [
     "Grit",
     "pulsera",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     siteName: "Grit",
     title: "Pulsera Grit · Tu versículo diario",
     description:
-      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
+      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 115.000 Gs. Envíos a todo Paraguay.",
     images: [
       {
         url: "/img/producto.jpg",
@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Pulsera Grit · Tu versículo diario",
     description:
-      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 85.000 Gs. Envíos a todo Paraguay.",
+      "Acercás el celular a la cruz y ahí está el versículo de hoy. Tejido premium, cruz bordada, sin app y sin mensualidad. 115.000 Gs. Envíos a todo Paraguay.",
     images: ["/img/producto.jpg"],
   },
   robots: {
