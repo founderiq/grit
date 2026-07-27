@@ -89,6 +89,10 @@ export async function POST(request: Request) {
       p_subtotal: p.subtotal,
       p_discount_amount: p.descuento,
       p_total: p.total,
+      // Cantidad de pulseras, contando la extra promocional. La base la usa
+      // para congelar el costo de producto del pedido. Sale del recálculo del
+      // servidor, no del navegador.
+      p_units: p.unidades,
       p_items: p.items,
       p_metadata: {
         origen: "checkout_web",

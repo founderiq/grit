@@ -8,19 +8,48 @@ Un **único** proyecto de Supabase va a alojar, con el tiempo:
 1. El ecommerce y el panel administrador
 2. La aplicación NFC de Grit
 
-Esta primera migración cubre **solo el ecommerce**. Las tablas de la aplicación
-NFC llegan en una migración aparte; por eso todos los objetos de acá llevan
-nombres del dominio de pedidos y se evitan nombres genéricos (`items`, `users`,
-`links`) que puedan chocar más adelante.
+Las migraciones actuales cubren el **ecommerce y la fundación del panel**. Las
+tablas de la aplicación NFC llegan en una migración aparte; por eso todos los
+objetos de acá llevan nombres del dominio de pedidos y se evitan nombres
+genéricos (`items`, `users`, `links`) que puedan chocar más adelante.
 
 ---
 
 ## Migraciones
 
-| Archivo | Contenido | Estado |
+Se aplican **en orden de nombre**, una sola vez cada una.
+
+| # | Archivo | Contenido | Estado |
+|---|---|---|---|
+| 1 | `migrations/20260727_grit_ecommerce_foundation.sql` | Fundación del ecommerce: pedidos, ítems, historial de estados y links de pago | ✅ aplicada |
+| 2 | `migrations/20260728_grit_orders_transactional.sql` | `confirmation_token`, `idempotency_key` y la función `create_order` | ✅ aplicada |
+| 3 | `migrations/20260729_grit_admin_foundation.sql` | `admin_users` y `business_settings` | ⏳ pendiente de aplicar |
+| 4 | `migrations/20260730_grit_admin_orders_costs.sql` | Columnas de admin en `orders`, `efectivo`, `order_adjustments`, `ad_spend`, `abandoned_checkouts`, `changed_by` | ⏳ pendiente de aplicar |
+| 5 | `migrations/20260731_grit_create_order_costs.sql` | `create_order` con snapshot de costos (`p_units`) | ⏳ pendiente de aplicar |
+
+> **No vuelvas atrás.** La migración 5 borra la versión de `create_order` que
+> crea la 2 y la reemplaza por otra con un parámetro más. Volver a correr la 2
+> **después** de la 5 dejaría dos funciones con el mismo nombre y firmas
+> distintas. (Si se intenta, la migración 2 falla y se revierte sola: no llega a
+> dejar nada a medias. Pero no hay motivo para intentarlo.)
+>
+> En cambio, **el orden respecto del despliegue del código no importa**: el
+> parámetro nuevo (`p_units`) va al final y es opcional, así que una llamada con
+> la firma vieja sigue siendo válida y la función deriva la cantidad de pulseras
+> de los propios ítems. Se puede aplicar la migración antes o después del deploy
+> sin ventana de error.
+
+Además hay un script que **no** es una migración:
+
+| Archivo | Cuándo | Qué hace |
 |---|---|---|
-| `migrations/20260727_grit_ecommerce_foundation.sql` | Fundación del ecommerce: pedidos, ítems, historial de estados y links de pago | ✅ aplicada |
-| `migrations/20260728_grit_orders_transactional.sql` | `confirmation_token`, `idempotency_key` y la función `create_order` | ⏳ pendiente de aplicar |
+| `scripts/agregar_admins.sql` | Después de la migración 3 | Habilita a mano las cuentas del equipo en `admin_users`. Usa placeholders: no contiene emails |
+
+Y la documentación de reportes:
+
+| Archivo | Contenido |
+|---|---|
+| `METRICAS.md` | Qué pedidos cuentan y cómo se calcula cada métrica del panel |
 
 ---
 
@@ -53,6 +82,31 @@ El pedido. Una fila por compra confirmada desde el checkout.
 | `notes` | `text` | Opcional |
 | `metadata` | `jsonb` | Opcional, default `{}` |
 | `created_at` / `updated_at` | `timestamptz` | `updated_at` lo mantiene un trigger |
+
+Columnas agregadas para el panel (migración 4):
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `source` | `text` | `web` \| `manual`. Los pedidos existentes quedaron en `web` |
+| `sale_date` | `date` | Fecha de la venta en `America/Asuncion`. Es la que usan los reportes |
+| `archived_at` | `timestamptz` | Archivado lógico. Con valor, el pedido sale de las métricas pero sigue existiendo |
+| `archived_by` | `uuid` | FK → `auth.users.id`, `on delete set null` |
+| `internal_notes` | `text` | Notas del equipo. Nunca se muestran al cliente |
+| `created_by` | `uuid` | Quién cargó un pedido manual. Siempre `null` en los web |
+| `product_cost_total` | `integer` | Snapshot: pulseras × costo unitario al momento de la venta |
+| `logistics_cost` | `integer` | Snapshot: costo logístico real de la zona, lo pague el cliente o no |
+| `customer_free_shipping` | `boolean` | `true` si el cliente pagó Gs. 0 de envío estándar |
+| `extra_revenue_total` | `integer` | Suma de `order_adjustments.revenue_amount`. Lo mantiene un trigger |
+| `extra_cost_total` | `integer` | Suma de `order_adjustments.cost_amount`. Lo mantiene un trigger |
+
+`payment_method` pasa a admitir también `efectivo`, para pedidos manuales.
+`transferencia` y `tarjeta` siguen igual, y **la lógica de `payment_status` de
+los pedidos web no cambia**.
+
+`idempotency_key` gana un `default gen_random_uuid()`: un pedido manual no viene
+de ningún reintento y no tiene una clave natural que ofrecer. Esto no debilita
+la idempotencia del checkout, porque `create_order` sigue fallando explícitamente
+si la clave llega en `null`.
 
 ### `order_items`
 
@@ -87,9 +141,16 @@ Bitácora de cambios de estado. **Se borra en cascada** al borrar el pedido.
 | `order_status` | `text` | Opcional, validado contra la lista |
 | `payment_status` | `text` | Opcional, validado contra la lista |
 | `note` | `text` | Opcional |
+| `changed_by` | `uuid` | Opcional. FK → `auth.users.id`, `on delete set null` |
 | `created_at` | `timestamptz` | |
 
 Una fila necesita al menos uno de los tres campos con contenido.
+
+`changed_by` es nullable a propósito: los pedidos web y los cambios automáticos
+no tienen persona detrás. Se completa solo cuando el cambio lo hace alguien
+desde el panel. Con estos cuatro campos la tabla cubre cambios de pago, de
+entrega, archivado/restaurado y notas internas, sin necesitar columnas nuevas:
+archivar se anota como una fila con `note` y `changed_by`, sin tocar los estados.
 
 ### `payment_links`
 
@@ -112,16 +173,112 @@ Links estáticos de pago con tarjeta, para cargar más adelante.
 Tabla interna de la numeración. No la toca ninguna aplicación: solo la usa la
 función `next_order_number()`.
 
+### `admin_users`
+
+Quién puede entrar a `/admin`. **No guarda emails ni contraseñas**: la identidad
+vive en `auth.users` y acá solo está el permiso.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `user_id` | `uuid` | PK y FK → `auth.users.id`, `on delete cascade` |
+| `role` | `text` | Por ahora solo `admin` |
+| `is_active` | `boolean` | Default `true`. `false` revoca el acceso sin perder el registro |
+| `display_name` | `text` | Opcional. Si está vacío, el panel muestra el email |
+| `created_at` / `updated_at` | `timestamptz` | `updated_at` con trigger |
+
+### `business_settings`
+
+Tabla **singleton** con los costos del negocio. Una sola fila, garantizada por
+`id smallint primary key check (id = 1)`.
+
+| Columna | Tipo | Inicial |
+|---|---|---|
+| `id` | `smallint` | `1` (fijo) |
+| `product_cost_per_bracelet` | `integer` | `9500` |
+| `logistics_cost_asuncion` | `integer` | `20000` |
+| `logistics_cost_interior` | `integer` | `30000` |
+| `updated_at` | `timestamptz` | con trigger |
+| `updated_by` | `uuid` | Opcional. FK → `auth.users.id`, `on delete set null` |
+
+Los tres costos tienen `check >= 0`. Editarlos **no reescribe** los snapshots de
+los pedidos ya creados.
+
+### `order_adjustments`
+
+Extras y ajustes de un pedido. **Se borran en cascada** al borrar el pedido.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `order_id` | `uuid` | FK → `orders.id`, `on delete cascade` |
+| `description` | `text` | Obligatoria si algún monto es mayor a cero |
+| `revenue_amount` | `integer` | `>= 0`. Suma a venta, facturación y total |
+| `cost_amount` | `integer` | `>= 0`. Resta a la ganancia |
+| `created_by` | `uuid` | Opcional. FK → `auth.users.id` |
+| `created_at` | `timestamptz` | |
+
+Un trigger recalcula `orders.extra_revenue_total` y `orders.extra_cost_total` en
+cada alta, edición o baja. Recalcula desde cero en vez de sumar diferencias, así
+un UPDATE o un DELETE no pueden dejar el total desfasado.
+
+### `ad_spend`
+
+Inversión publicitaria por fecha. Una misma fecha admite varias filas
+(campañas o plataformas distintas).
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `spend_date` | `date` | Indexado |
+| `amount` | `integer` | **Mayor a cero** |
+| `note` | `text` | Opcional |
+| `created_by` | `uuid` | Opcional |
+| `created_at` / `updated_at` | `timestamptz` | `updated_at` con trigger |
+
+### `abandoned_checkouts`
+
+Checkouts iniciados y no completados. **Solo el esquema**: la captura llega en
+una fase posterior, desde un endpoint server-side. `anon` no tiene ningún
+privilegio, así que no se puede insertar desde el navegador.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `session_key` | `text` | **Único**, no vacío |
+| `customer_name` / `customer_whatsapp` / `customer_city` | `text` | Opcionales |
+| `pack_id` | `text` | Opcional |
+| `pack_qty` | `integer` | Opcional, mayor a cero |
+| `has_extra` | `boolean` | Default `false` |
+| `shipping_zone` | `text` | Opcional. `asuncion` \| `interior` |
+| `current_step` | `text` | Opcional |
+| `status` | `text` | `abandoned` \| `converted`. Default `abandoned` |
+| `converted_order_id` | `uuid` | Opcional. FK → `orders.id`, `on delete set null` |
+| `created_at` / `updated_at` / `last_seen_at` | `timestamptz` | |
+| `archived_at` | `timestamptz` | Opcional |
+
 ---
 
 ## Relaciones
 
 ```
 orders ─┬─< order_items           (order_id, ON DELETE CASCADE)
-        └─< order_status_history  (order_id, ON DELETE CASCADE)
+        ├─< order_status_history  (order_id, ON DELETE CASCADE)
+        ├─< order_adjustments     (order_id, ON DELETE CASCADE)
+        └─< abandoned_checkouts   (converted_order_id, ON DELETE SET NULL)
+
+auth.users ─┬─< admin_users                      (user_id,   ON DELETE CASCADE)
+            ├─· orders.archived_by / created_by  (ON DELETE SET NULL)
+            ├─· order_status_history.changed_by  (ON DELETE SET NULL)
+            ├─· order_adjustments.created_by     (ON DELETE SET NULL)
+            ├─· ad_spend.created_by              (ON DELETE SET NULL)
+            └─· business_settings.updated_by     (ON DELETE SET NULL)
 
 orders.payment_link_key ··· payment_links.key   (referencia lógica, sin FK)
 ```
+
+`admin_users` usa `cascade` porque una cuenta borrada no debe dejar un permiso
+huérfano. El resto de las referencias a `auth.users` usa `set null`: borrar a una
+persona no puede borrar el histórico de pedidos que registró.
 
 `payment_link_key` no lleva foreign key a propósito: si algún día se borra o
 se rota un link de pago, el histórico del pedido tiene que sobrevivir con la
@@ -132,13 +289,24 @@ clave que se usó en su momento.
 ## Estados
 
 **`payment_method`**
-`transferencia` · `tarjeta`
+`transferencia` · `tarjeta` · `efectivo`
+
+`efectivo` existe solo para pedidos manuales. El checkout web sigue ofreciendo
+únicamente transferencia y tarjeta.
 
 **`payment_status`** — default `pendiente_transferencia`
 `pendiente_transferencia` · `pendiente_pago_online` · `pagado` · `fallido` · `cancelado`
 
 **`order_status`** — default `nuevo`
 `nuevo` · `confirmado` · `preparando` · `enviado` · `entregado` · `cancelado`
+
+**`source`** — default `web`
+`web` (checkout público) · `manual` (cargado desde el panel)
+
+En el panel, los estados de pago se agrupan visualmente en tres:
+**Pendiente** (`pendiente_transferencia` y `pendiente_pago_online`),
+**Pagado** (`pagado`) y **Cancelado** (`cancelado`). `fallido` se muestra aparte.
+Es una agrupación de presentación: los valores guardados no cambian.
 
 Se implementaron como constraints `CHECK` y no como `enum` de PostgreSQL: un
 `CHECK` se amplía con un simple `ALTER TABLE ... DROP/ADD CONSTRAINT`, mientras
@@ -197,7 +365,7 @@ con cero duplicados.
 
 ## Política de RLS
 
-**Row Level Security está activo en las cinco tablas, y no hay ninguna política.**
+**Row Level Security está activo en las diez tablas, y no hay ninguna política.**
 
 Con RLS activo y sin políticas, el efecto es:
 
@@ -207,38 +375,66 @@ Con RLS activo y sin políticas, el efecto es:
 | `authenticated` (navegador, con sesión) | **ninguno** |
 | `service_role` (servidor) | total — saltea RLS por definición |
 
-Además, como defensa en profundidad, la migración:
+Esto vale también **con el panel andando**: estar autenticado en Supabase Auth
+no da acceso a ninguna tabla. El panel no consulta la base desde el navegador;
+todo pasa por el servidor, que primero verifica `admin_users`.
 
-- **revoca** todos los privilegios de tabla a `anon` y `authenticated`, para que
+Además, como defensa en profundidad, las migraciones:
+
+- **revocan** todos los privilegios de tabla a `anon` y `authenticated`, para que
   un descuido futuro al crear una política no abra la puerta sola;
-- **grantea explícitamente** `select, insert, update, delete` a `service_role`
-  sobre las cuatro tablas de aplicación, en vez de depender de los *default
-  privileges* de Supabase (así la migración es autocontenida);
-- **deja el contador de numeración sin grants** para todos los roles de
+- **grantean explícitamente** los privilegios a `service_role` sobre cada tabla,
+  en vez de depender de los *default privileges* de Supabase (así cada migración
+  es autocontenida);
+- **dejan el contador de numeración sin grants** para todos los roles de
   aplicación, incluido `service_role`: solo lo toca la función
   `next_order_number()`, que es `SECURITY DEFINER`.
 
-### Qué clave se usa en el servidor
+### `admin_users` es de solo lectura para el servidor
 
-Los pedidos se insertan y se leen **exclusivamente** desde el servidor, con dos
-variables de entorno:
+`admin_users` es la única tabla donde `service_role` tiene **solo `SELECT`**:
 
-| Variable | Para qué |
-|---|---|
-| `SUPABASE_URL` | URL del proyecto |
-| `SUPABASE_SECRET_KEY` | Clave con permisos de `service_role` |
+```sql
+revoke all    on public.admin_users from service_role;
+grant  select on public.admin_users to   service_role;
+```
 
-- Ninguna de las dos lleva prefijo `NEXT_PUBLIC_`, así que Next **no las expone**
-  al navegador.
+El servidor necesita leerla para autorizar; no necesita —y por lo tanto no
+puede— crear ni modificar administradores. Alta, baja y cambios de rol se hacen
+exclusivamente desde el SQL Editor del proyecto, que corre como dueño de la base
+(ver `scripts/agregar_admins.sql`).
+
+Consecuencia buscada: **nadie puede promoverse a sí mismo a administrador**, ni
+siquiera en el peor escenario de la secret key filtrada y un endpoint
+comprometido.
+
+### Qué clave se usa dónde
+
+| Variable | Lado | Para qué |
+|---|---|---|
+| `SUPABASE_URL` | servidor | URL del proyecto |
+| `SUPABASE_SECRET_KEY` | servidor | Clave con permisos de `service_role` |
+| `NEXT_PUBLIC_SUPABASE_URL` | navegador | URL del proyecto, para Auth |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | navegador | Publishable key, **solo para Auth** |
+
+- Las dos del servidor **no** llevan prefijo `NEXT_PUBLIC_`, así que Next no las
+  expone al navegador.
 - Solo las lee `lib/supabase-admin.ts`, que empieza con `import "server-only"`:
-  si algún componente de cliente llegara a importarlo, **el build falla**.
-- Los únicos archivos que importan ese módulo son `app/api/pedidos/route.ts` y
-  `app/gracias/page.tsx`, ambos de servidor.
-- La `anon key` no sirve para leer ni escribir en estas tablas, por diseño:
-  aunque se filtrara, no puede tocar pedidos.
+  si algún componente de cliente llegara a importarlo, **el build falla**
+  (verificado en cada fase importándolo a propósito desde un componente de
+  cliente).
+- Lo mismo vale para `lib/supabase-server.ts` y `lib/admin-auth.ts`.
+- La publishable key **solo sirve para autenticar**. Con RLS activo y sin
+  políticas no puede leer ni escribir ninguna tabla de Grit, así que aunque se
+  filtrara —viaja en cada request del navegador, es pública por diseño— no puede
+  tocar pedidos ni ver quién es administrador.
+- Verificado en el build: la publishable key aparece únicamente en el chunk de
+  `/admin`. Ni la landing, ni `/producto`, ni `/checkout`, ni `/gracias` la
+  cargan.
 
 Este archivo no contiene ninguna credencial, ni la URL del proyecto, ni la anon
-key, ni la service role key, ni tokens, ni links de pago reales.
+key, ni la publishable key, ni la service role key, ni tokens, ni emails, ni
+links de pago reales.
 
 ---
 
@@ -302,45 +498,134 @@ la marca se borra en la primera limpieza, un refresh posterior no toca nada.
 
 ---
 
-## Qué queda pendiente para la Fase 5B
+## Snapshot de costos (`create_order`, migración 5)
+
+Al crear un pedido web, la función congela cuatro datos que después no vuelve a
+tocar nunca:
+
+| Dato | Cómo se calcula |
+|---|---|
+| `product_cost_total` | `p_units × business_settings.product_cost_per_bracelet` |
+| `logistics_cost` | El costo de la zona real: `asuncion` o `interior` |
+| `customer_free_shipping` | `p_shipping_cost = 0` |
+| `sale_date` | `(now() at time zone 'America/Asuncion')::date` |
+
+Y fija `source = 'web'`.
+
+`p_units` es la cantidad de pulseras, **incluida la extra promocional**. La
+calcula el servidor en `lib/pedidos.ts` a partir del catálogo; no llega nunca
+del navegador. La función rechaza un pedido con cero pulseras.
+
+El parámetro va **al final de la firma y con default `null`**, para que una
+llamada con los 17 argumentos anteriores siga siendo válida: en ese caso la
+cantidad se deriva de los propios ítems (`bundle_id` es la cantidad de pulseras
+del pack; la extra promocional no lleva `bundle_id` y cuenta como una). Es lo
+que permite aplicar la migración antes o después del deploy sin romper nada.
+
+`customer_free_shipping` se **deriva** de `p_shipping_cost` en vez de recibirse
+como parámetro aparte, para que los dos datos no puedan contradecirse.
+
+### Qué no cambia el snapshot
+
+- **Un reintento.** La comprobación de `idempotency_key` ocurre *antes* de leer
+  los costos: si el pedido ya existía, la función devuelve el existente sin
+  tocarlo. Verificado subiendo el costo de la pulsera entre el primer intento y
+  el segundo: el snapshot quedó en el valor original.
+- **Editar `business_settings`.** Los pedidos anteriores conservan sus números;
+  solo los posteriores toman los nuevos. Verificado.
+- **El VIP.** Suma ingreso vía `vip_shipping_cost` y no agrega costo logístico.
+- **El envío gratis.** El cliente paga Gs. 0, pero `logistics_cost` guarda igual
+  lo que gastó el negocio.
+
+Los pedidos anteriores a la migración 4 recibieron el snapshot en un backfill
+único, con la misma fórmula y los costos vigentes al aplicarla. Dejarlos en cero
+habría sido peor: un pedido con costo 0 aparece en los reportes con 100 % de
+margen, que es un número falso.
+
+---
+
+## Autorización de `/admin`
+
+Dos comprobaciones encadenadas, las dos **en el servidor**:
+
+1. **Autenticación** — `supabase.auth.getUser()` con la sesión de las cookies.
+   Se usa `getUser()` y no `getSession()`: el primero valida el token contra
+   Supabase Auth, el segundo confía en la cookie tal como llegó.
+2. **Autorización** — se busca ese `user_id` en `admin_users` con la service
+   role. Sin una fila con `is_active = true` no se entra, **por más que la
+   cuenta exista en Auth**. En ningún momento se autoriza por email.
+
+La regla está aislada en `lib/admin-acceso.ts` (función pura, sin red ni base) y
+la orquesta `lib/admin-auth.ts`. Falla cerrado: si la consulta de autorización
+falla, no hay permiso.
+
+`/admin` es un Server Component con `dynamic = "force-dynamic"`. No existe una
+versión "completa" de la página escondida detrás de un `if` del cliente, así que
+no hay nada que revelar desactivando JavaScript ni inspeccionando el bundle.
+
+Un `middleware.ts` acotado a `/admin/:path*` refresca el token cuando expira —un
+Server Component puede leer cookies pero no escribirlas—. **No** es la
+autorización: solo mantiene viva la sesión.
+
+Verificado de punta a punta contra un stub local de Supabase Auth + PostgREST:
+cuenta sin fila → «Acceso no autorizado»; cuenta con fila inactiva → «Acceso no
+autorizado»; cuenta activa → panel; sesión que sobrevive al recargado y a otra
+pestaña; «Salir» que vuelve al login; y una cookie de sesión editada a mano para
+suplantar al administrador activo que **no** abre el panel.
+
+---
+
+## Qué queda pendiente
 
 - Carga de los links reales en `payment_links` y redirección al pago externo
   para el método `tarjeta` (hoy va a `/gracias`, que muestra el pago online
   como pendiente).
-- Notificación por Telegram.
-- Panel administrador y Supabase Auth, con las políticas de RLS para
-  `authenticated` acotadas por rol.
+- Secciones del panel: dashboard, métricas, tabla de pedidos, detalle, pedido
+  manual, formularios de costos y de Ad Spend.
+- Captura de checkouts abandonados desde un endpoint server-side.
 - Trigger opcional que registre automáticamente en `order_status_history` cada
   cambio de `order_status` o `payment_status`.
 - Tablas de la aplicación NFC, en su propia migración.
 
 ---
 
-## Cómo aplicar la migración manualmente
+## Cómo aplicar las migraciones manualmente
 
-Desde el **SQL Editor** de Supabase:
+Desde el **SQL Editor** de Supabase, una por vez y **en orden de nombre**:
 
 1. Entrá al proyecto en [supabase.com](https://supabase.com) → **SQL Editor**.
 2. **New query**.
 3. Copiá el contenido completo de la migración que toque aplicar y pegalo.
-   Las migraciones se aplican **en orden de nombre**: primero
-   `20260727_grit_ecommerce_foundation.sql` (ya aplicada), después
-   `20260728_grit_orders_transactional.sql`.
 4. **Run**.
-5. Verificá en **Table Editor** que aparecen las cinco tablas: `orders`,
-   `order_items`, `order_status_history`, `payment_links` y
-   `order_number_counters`.
-6. Verificá en **Authentication → Policies** que las cinco figuran con RLS
-   activo y **sin políticas**.
+5. Pasá a la siguiente. No saltees ninguna y no vuelvas atrás.
 
-La migración corre dentro de una transacción: si algo falla, no queda nada a
-medio aplicar. Es idempotente, así que volver a correrla es seguro — la segunda
-vez solo emite avisos de tipo `already exists, skipping`.
+Orden completo:
 
-### Comprobación rápida después de aplicar
+```
+1. migrations/20260727_grit_ecommerce_foundation.sql   ✅ ya aplicada
+2. migrations/20260728_grit_orders_transactional.sql   ✅ ya aplicada
+3. migrations/20260729_grit_admin_foundation.sql       ← aplicar
+4. migrations/20260730_grit_admin_orders_costs.sql     ← aplicar
+5. migrations/20260731_grit_create_order_costs.sql     ← aplicar
+```
+
+Después, y solo entonces:
+
+```
+6. scripts/agregar_admins.sql   ← reemplazando los cuatro placeholders
+```
+
+> El checkout sigue funcionando durante todo el proceso: `p_units` es opcional,
+> así que ni la versión desplegada vieja ni la nueva se rompen mientras se
+> aplican las migraciones.
+
+Cada migración corre dentro de una transacción: si algo falla, no queda nada a
+medio aplicar.
+
+### Comprobación después de aplicar
 
 ```sql
--- Las cinco tablas, con RLS activo y sin políticas
+-- Las diez tablas, con RLS activo y sin políticas
 select c.relname                                                as tabla,
        c.relrowsecurity                                         as rls_activo,
        (select count(*) from pg_policies p where p.tablename = c.relname) as politicas
@@ -349,13 +634,32 @@ join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public' and c.relkind = 'r'
 order by 1;
 
--- La numeración funciona (esto NO crea ningún pedido)
-select public.next_order_number();
+-- business_settings tiene exactamente una fila, con los costos iniciales
+select * from public.business_settings;
+
+-- Queda una sola versión de create_order, la de 18 parámetros
+select pg_get_function_identity_arguments(p.oid)
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.proname = 'create_order';
+
+-- service_role puede leer admin_users pero no escribirla
+select has_table_privilege('service_role', 'public.admin_users', 'select') as puede_leer,
+       has_table_privilege('service_role', 'public.admin_users', 'insert') as puede_insertar;
 ```
 
-> El `select public.next_order_number()` consume un número del contador del día.
-> Si querés dejar el contador en cero después de probar:
-> `delete from public.order_number_counters;`
+Lo esperado: diez tablas con `rls_activo = t` y `politicas = 0`; una sola fila
+en `business_settings` con 9500 / 20000 / 30000; una sola firma de
+`create_order` terminada en `p_units integer, p_items jsonb, p_metadata jsonb`;
+y `puede_leer = t`, `puede_insertar = f`.
+
+Los pedidos existentes tienen que haber quedado con su snapshot cargado:
+
+```sql
+select order_number, source, sale_date, customer_free_shipping,
+       product_cost_total, logistics_cost
+  from public.orders
+ order by created_at;
+```
 
 ### Con la CLI de Supabase (opcional)
 

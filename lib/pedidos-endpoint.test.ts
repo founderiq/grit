@@ -244,6 +244,30 @@ describe("contrato del endpoint sin cambios", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("manda la cantidad de pulseras para el snapshot de costo", async () => {
+    single.mockResolvedValue(filaCreada());
+
+    // Pack de 2 + pulsera extra promocional = 3 pulseras.
+    await pedir({ ...CUERPO_OK, packId: "2", extra: true });
+    expect(rpcMock.mock.calls[0]![1].p_units).toBe(3);
+
+    rpcMock.mockClear();
+    // Pack de 1 con cantidad 2 = 2 pulseras.
+    await pedir({ ...CUERPO_OK, packId: "1", qty: 2, extra: false });
+    expect(rpcMock.mock.calls[0]![1].p_units).toBe(2);
+  });
+
+  it("no manda costos ni el snapshot: eso lo calcula la base", async () => {
+    single.mockResolvedValue(filaCreada());
+    // El cliente intenta imponer su propio costo de producto.
+    await pedir({ ...CUERPO_OK, product_cost_total: 0, logistics_cost: 0, source: "manual" });
+
+    const enviado = rpcMock.mock.calls[0]![1];
+    expect(enviado).not.toHaveProperty("p_product_cost_total");
+    expect(enviado).not.toHaveProperty("p_logistics_cost");
+    expect(enviado).not.toHaveProperty("p_source");
+  });
+
   it("tarjeta se registra como pendiente_pago_online", async () => {
     single.mockResolvedValue(
       filaCreada({ payment_method: "tarjeta", payment_status: "pendiente_pago_online" }),

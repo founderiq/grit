@@ -23,7 +23,7 @@ type InputProps = {
   /** Texto de ayuda debajo del campo. */
   ayuda?: string;
   required?: boolean;
-  type?: "text" | "tel" | "url";
+  type?: "text" | "tel" | "url" | "email" | "password";
   autoComplete?: string;
   inputRef?: React.Ref<HTMLInputElement>;
   className?: string;
