@@ -47,7 +47,9 @@ export default function Footer() {
           </a>
         </div>
 
-        <div className="mt-[26px] border-t border-borde pt-5 font-mono text-[10.5px] tracking-[0.08em] text-gris-oscuro">
+        {/* Corrección de contraste #3 (specs/11): gris-oscuro #5C564D sobre
+            tinta da 2.59:1. gris-medio #8C857A sube a 5.15:1, AA ✓. */}
+        <div className="mt-[26px] border-t border-borde pt-5 font-mono text-[10.5px] tracking-[0.08em] text-gris-medio">
           © 2026 Grit · Paraguay · Vivir con intención.
         </div>
       </div>

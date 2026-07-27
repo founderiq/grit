@@ -1,0 +1,293 @@
+/**
+ * GRIT DESIGN SYSTEM — hoja de tokens
+ * Handoff v1.0 · portado desde `tokens/grit-tokens.css` del bundle.
+ *
+ * Capa 1 = PRIMITIVOS (valores crudos, nunca referenciados desde componentes)
+ * Capa 2 = SEMÁNTICOS (alias por rol — usar estos en los componentes)
+ *
+ * IMPORTANTE — por qué este archivo solo declara variables:
+ * el bundle original incluía además reglas base sin capa (`body`, `a`,
+ * `::selection`, `:focus-visible`). El CSS sin capa gana sobre el CSS en
+ * `@layer`, así que esas reglas habrían pisado a las utilidades de Tailwind
+ * (`a { color }` habría anulado todo `text-gris-copy` del sitio, y el
+ * `font-size: 17px` del body habría desplazado la tipografía heredada).
+ * Las reglas base equivalentes viven en `globals.css` dentro de `@layer base`.
+ */
+
+:root {
+  /* ==========================================================================
+     CAPA 1 — PRIMITIVOS
+     ====================================================================== */
+
+  /* --- Ink (superficies oscuras) ---------------------------------------- */
+  --grit-ink-900: #14110f; /* tinta   — superficie oscura principal */
+  --grit-ink-800: #211d19; /* tinta-2 — superficie oscura secundaria */
+  --grit-ink-700: #2e2922; /* hairline sobre oscuro */
+  --grit-ink-600: #3a342e; /* copy sobre claro / conector sobre oscuro */
+  --grit-ink-500: #4a443b; /* anillo inactivo sobre oscuro */
+
+  /* --- Bone (superficies claras) ---------------------------------------- */
+  --grit-bone-100: #f2eee6; /* hueso — superficie clara + copy sobre oscuro */
+  --grit-bone-200: #ede9e0; /* superficie-clara — tarjetas sobre hueso */
+  --grit-bone-300: #e2dccf; /* hover del botón hueso */
+  --grit-bone-400: #d8d1c3; /* hairline sobre claro */
+
+  /* --- Clay (el acento, en dos roles distintos) -------------------------- */
+  --grit-clay-300: #ffb185; /* relleno del icon badge */
+  --grit-clay-400: #ff8a53; /* acento INTERACTIVO — controles */
+  --grit-clay-500: #e8753f; /* acento interactivo, hover */
+  --grit-clay-600: #c2693f; /* tierra — acento de MARCA, marcas tipográficas */
+  --grit-clay-700: #91401f; /* glifo del icon badge */
+  --grit-clay-800: #7a3b2b; /* tierra-oscura — acento de marca sobre claro */
+
+  /* --- Rampa de grises cálidos ------------------------------------------- */
+  --grit-grey-100: #c9c2b6; /* gris-copy   — copy sobre oscuro */
+  --grit-grey-200: #a39c90; /* gris-claro  — terciario sobre oscuro */
+  --grit-grey-300: #8c857a; /* gris-medio  — labels sobre oscuro */
+  --grit-grey-400: #5c564d; /* gris-oscuro — secundario sobre claro */
+
+  /* --- Estado (⚠️ DERIVADO — no existía en el repo original) -------------- */
+  --grit-success-500: #4f7a4a;
+  --grit-warning-500: #b8862f; /* ⚠️ 2.80:1 sobre hueso — oscurecer a ~#8f6820 antes de usarlo como texto */
+  --grit-danger-500: #a33f2e;
+
+  /* --- Ecommerce (Product Experience handoff) ---------------------------- */
+  --grit-verde-500: #4a7c59; /* entrega / envío gratis alcanzado */
+  --grit-verde-700: #2f5138; /* texto sobre el tinte verde */
+  --grit-surface-input: #fbf9f4; /* fondo de inputs en checkout */
+  --grit-track: #dcd5c6; /* fondo de barras de progreso */
+
+  /* ==========================================================================
+     CAPA 2 — ALIAS SEMÁNTICOS (usar estos en los componentes)
+     ====================================================================== */
+
+  /* --- Superficies -------------------------------------------------------- */
+  --surface-dark: var(--grit-ink-900);
+  --surface-dark-raised: var(--grit-ink-800);
+  --surface-light: var(--grit-bone-100);
+  --surface-light-raised: var(--grit-bone-200);
+  --surface-card-on-light: var(--grit-bone-200);
+  --surface-card-on-dark: var(--grit-ink-800);
+  --surface-overlay: rgba(20, 17, 15, 0.7);
+  --surface-scrim: rgba(20, 17, 15, 0.5); /* scrim del cart drawer */
+  --surface-header: rgba(20, 17, 15, 0.7);
+  --surface-header-scrolled: rgba(20, 17, 15, 0.9);
+
+  /* --- Texto sobre superficies oscuras ------------------------------------ */
+  --text-on-dark: var(--grit-bone-100);
+  --text-on-dark-muted: var(--grit-grey-100);
+  --text-on-dark-tertiary: var(--grit-grey-200);
+  --text-on-dark-label: var(--grit-grey-300);
+  --text-on-dark-faint: var(--grit-grey-400);
+
+  /* --- Texto sobre superficies claras -------------------------------------- */
+  --text-on-light: var(--grit-ink-900);
+  --text-on-light-muted: var(--grit-ink-600);
+  --text-on-light-tertiary: var(--grit-grey-400);
+  /* Valor del repo original: #8C857A. Solo alcanza 3.16:1 sobre hueso — el
+     scope .grit-on-light lo corrige a #5C564D (6.27:1). Ver specs/11. */
+  --text-on-light-label: var(--grit-grey-300);
+
+  /* --- Acento de MARCA (marcas tipográficas: puntos, números, punto final) - */
+  --accent: var(--grit-clay-600); /* sobre oscuro */
+  --accent-on-light: var(--grit-clay-800); /* sobre claro */
+
+  /* --- Acento INTERACTIVO (controles: botones, foco, estados activos) ------ */
+  --accent-interactive: var(--grit-clay-400);
+  --accent-interactive-hover: var(--grit-clay-500);
+  --accent-interactive-fg: var(--grit-ink-900); /* texto sobre el acento */
+
+  /* --- Icon badge ---------------------------------------------------------- */
+  --icon-badge-bg: var(--grit-clay-300);
+  --icon-badge-glyph: var(--grit-clay-700);
+
+  /* --- Bordes -------------------------------------------------------------- */
+  --border-on-dark: var(--grit-ink-700);
+  --border-on-light: var(--grit-bone-400);
+  --border-strong-on-light: var(--grit-ink-900);
+  --border-ring-inactive: var(--grit-ink-500);
+  --border-ring-active: var(--accent);
+
+  /* --- Enlaces ------------------------------------------------------------- */
+  --link: var(--accent);
+  --link-hover: var(--accent-on-light);
+  --link-on-light: var(--accent-on-light);
+
+  /* --- Foco (⚠️ DERIVADO) --------------------------------------------------
+     Dos colores según superficie: el clay es casi invisible sobre hueso
+     (2.01:1), así que las superficies claras usan el anillo tinta (16.25:1).
+     El valor de :root es un FALLBACK deliberado para nodos que todavía no
+     están dentro de un scope .grit-on-*: tierra da 4.82:1 sobre tinta y
+     3.37:1 sobre hueso, así que supera el umbral de 3:1 en ambas superficies.
+     Los valores aprobados exactos los aplican los scopes de abajo. */
+  --focus-ring-color: var(--grit-clay-600);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* ==========================================================================
+     TIPOGRAFÍA
+     ====================================================================== */
+  --font-display: var(--font-archivo); /* titulares, UPPERCASE */
+  --font-body: var(--font-inter); /* copy */
+  --font-mono-grit: var(--font-plex-mono); /* eyebrows, meta, labels */
+
+  /* Pesos */
+  --fw-body: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+  --fw-black: 900;
+
+  /* Escala display (Archivo, UPPERCASE) */
+  --fs-display-2xl: 80px;
+  --fs-display-xl: 74px;
+  --fs-display-lg: 62px;
+  --fs-display-md: 44px;
+  --fs-display-sm: 34px;
+  --fs-statement: 40px;
+  --fs-title: 21px;
+  --fs-title-sm: 18px;
+  --fs-eyebrow-lg: 15px;
+
+  /* Escala body (Inter) */
+  --fs-body-lg: 17px;
+  --fs-body: 15.5px;
+  --fs-body-sm: 14.5px;
+  --fs-body-xs: 13.5px;
+
+  /* Escala label (IBM Plex Mono) */
+  --fs-label: 11px;
+  --fs-label-sm: 10.5px;
+  --fs-label-xs: 9.5px;
+
+  /* Interlineados */
+  --lh-tight: 0.9;
+  --lh-hero: 0.92;
+  --lh-heading: 1.02;
+  --lh-snug: 1.16;
+  --lh-title: 1.32;
+  --lh-body: 1.6;
+  --lh-loose: 1.65;
+
+  /* Tracking */
+  --tracking-display: -0.03em;
+  --tracking-heading: -0.02em;
+  --tracking-tight: -0.015em;
+  --tracking-label: 0.2em;
+  --tracking-label-md: 0.14em;
+  --tracking-label-sm: 0.12em;
+  --tracking-label-xs: 0.08em;
+
+  /* ==========================================================================
+     ESPACIADO Y LAYOUT
+     ====================================================================== */
+  --space-section: 74px;
+  --space-section-lg: 80px;
+  --gutter: 26px;
+  --gutter-md: 40px;
+  --max-content: 1120px;
+  --header-height: 52px;
+
+  /* ==========================================================================
+     RADIOS
+     ====================================================================== */
+  --radius-image: 6px; /* fotos de producto — apenas redondeadas */
+  --radius-card: 10px;
+  --radius-summary: 12px; /* tarjeta de resumen del pedido */
+  --radius-hero: 16px;
+  --radius-mockup: 26px;
+  --radius-pill: 9999px;
+  --radius-input: 9999px; /* ⚠️ DERIVADO */
+  --radius-field: 10px; /* ⚠️ DERIVADO */
+  --radius-strip: 8px; /* tiras internas, inputs de checkout */
+
+  /* ==========================================================================
+     BORDES
+     ====================================================================== */
+  --border-hairline: 1px;
+  --border-strong: 1.5px;
+  --border-heavy: 2px;
+
+  /* ==========================================================================
+     MOVIMIENTO — sobrio: solo color. Sin escala, sin rebote, sin elevación.
+     ====================================================================== */
+  --dur-fast: 180ms; /* controles (aprobado en revisión) */
+  --dur-base: 300ms; /* expansión del acordeón */
+  --dur-slow: 300ms;
+  --ease: ease;
+  --ease-out: ease-out;
+
+  --transition-control: color 180ms ease, background-color 180ms ease,
+    border-color 180ms ease;
+  --transition-surface: background-color 300ms ease, border-color 300ms ease;
+  --transition-expand: grid-template-rows 300ms ease-out;
+
+  /* ==========================================================================
+     EFECTOS
+     ====================================================================== */
+  /* SIN SOMBRAS. El sistema es plano. No agregar box-shadow.
+     Única excepción sancionada: el borde del cart drawer, que es un hairline
+     expresado como `box-shadow: -1px 0 0`, no un desenfoque. */
+  --shadow-none: none;
+
+  --blur-header: 10px;
+  --blur-header-scrolled: 16px;
+  --blur-overlay: 4px;
+
+  /* Gradiente de protección — funde la fotografía en la superficie tinta */
+  --gradient-hero: linear-gradient(
+    #14110f,
+    rgba(20, 17, 15, 0) 22%,
+    rgba(20, 17, 15, 0) 80%,
+    rgba(20, 17, 15, 0.45)
+  );
+  --gradient-bleed-left: linear-gradient(
+    90deg,
+    rgba(20, 17, 15, 0.92) 0%,
+    rgba(20, 17, 15, 0.55) 42%,
+    rgba(20, 17, 15, 0) 72%
+  );
+
+  --z-header: 30;
+  --z-overlay: 50;
+}
+
+/* ============================================================================
+   SCOPES DE SUPERFICIE
+   Grit no tiene *modo* claro/oscuro: ambas superficies conviven en una misma
+   página, sección por sección. Se aplica la clase al <section> y adentro se
+   usan los alias scopeados, así un componente (Badge, Input, Card) puede ser
+   agnóstico de superficie.
+   ========================================================================= */
+
+.grit-on-dark {
+  --surface: var(--surface-dark);
+  --surface-raised: var(--surface-dark-raised);
+  --fg: var(--text-on-dark);
+  --fg-muted: var(--text-on-dark-muted);
+  --fg-tertiary: var(--text-on-dark-tertiary);
+  --fg-label: var(--text-on-dark-label);
+  --border: var(--border-on-dark);
+  --brand-accent: var(--accent);
+  --focus-ring-color: var(--accent-interactive); /* 8.07:1 sobre tinta */
+  color-scheme: dark;
+}
+
+.grit-on-light {
+  --surface: var(--surface-light);
+  --surface-raised: var(--surface-light-raised);
+  --fg: var(--text-on-light);
+  --fg-muted: var(--text-on-light-muted);
+  --fg-tertiary: var(--text-on-light-tertiary);
+  /* Corrección de contraste #1/#2: #8C857A solo alcanza 3.16:1 sobre hueso
+     y 3.01:1 sobre tarjeta (AA pide 4.5:1). #5C564D da 6.27:1 / 5.99:1 y es
+     visualmente casi idéntico a 10–11px. ⚠️ flaggeado para design review. */
+  --fg-label: var(--grit-grey-400);
+  --border: var(--border-on-light);
+  --brand-accent: var(--accent-on-light);
+  /* Corrección de contraste #4: el anillo clay falla 3:1 sobre hueso
+     (2.01:1) — se usa tinta (16.25:1). */
+  --focus-ring-color: var(--grit-ink-900);
+  color-scheme: light;
+}
