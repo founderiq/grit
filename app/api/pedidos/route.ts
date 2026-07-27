@@ -4,6 +4,7 @@ import {
   getSupabaseAdmin,
 } from "@/lib/supabase-admin";
 import { validarYCalcular } from "@/lib/pedidos";
+import { notificarPedidoNuevo } from "@/lib/telegram";
 
 /**
  * POST /api/pedidos — registra un pedido.
@@ -105,10 +106,47 @@ export async function POST(request: Request) {
     return json({ error: "error_interno" }, 500);
   }
 
-  /* 5 · Respuesta ----------------------------------------------------------
+  /* 5 · Aviso por Telegram --------------------------------------------------
+     Solo cuando el pedido es NUEVO. Si `is_duplicate` viene en true, el
+     pedido ya existía —doble clic, reintento o corte de red— y el grupo ya
+     recibió su aviso: no se vuelve a notificar.
+
+     Va fuera de la transacción de base de datos y a propósito no afecta el
+     resultado: si Telegram está caído, el pedido igual está guardado y el
+     comprador igual recibe su confirmación. El fallo queda en el log del
+     servidor y nada más. Se espera la respuesta (con timeout corto) porque en
+     serverless el trabajo posterior a la respuesta no está garantizado.      */
+  if (!data.is_duplicate) {
+    await notificarPedidoNuevo({
+      orderNumber: data.order_number,
+      cliente: {
+        nombre: p.contacto.nombre,
+        whatsapp: p.contacto.telefono,
+        ciudad: p.contacto.ciudad,
+        direccion: p.contacto.direccion,
+        ubicacion: p.contacto.ubicacion || null,
+      },
+      items: p.items.map((i) => ({
+        product_name: i.product_name,
+        quantity: i.quantity,
+        line_total: i.line_total,
+      })),
+      subtotal: p.subtotal,
+      envio: p.envio,
+      envioGratis: p.envioGratis,
+      vip: p.vip,
+      vipCosto: p.vipCosto,
+      total: p.total,
+      zona: p.zona,
+      metodoPago: p.metodoPago,
+      paymentStatus: p.paymentStatus,
+    });
+  }
+
+  /* 6 · Respuesta ----------------------------------------------------------
      No se expone `data.id`: el UUID interno del pedido se queda en el
      servidor. Hacia afuera viaja `confirmation_token`, que es el que abre
-     /gracias.                                                              */
+     /gracias. El resultado de Telegram no cambia nada de esta respuesta.   */
   return json(
     {
       orderNumber: data.order_number,
