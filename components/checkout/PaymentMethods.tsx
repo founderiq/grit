@@ -4,9 +4,18 @@ import { useRef } from "react";
 import OptionRow, { RadioDot } from "./OptionRow";
 import BankDetails from "./BankDetails";
 import { CHECKOUT } from "@/lib/content";
+import { PAGOS_FLAGS } from "@/lib/feature-flags";
 import type { MetodoPago } from "@/lib/checkout";
 
-const METODOS: MetodoPago[] = ["transferencia", "tarjeta"];
+/**
+ * Métodos que se ofrecen. Pago online se apaga desde `PAGOS_FLAGS` — la
+ * lógica de `tarjeta` sigue intacta en todo el resto del sistema, solo deja de
+ * aparecer acá. Con un solo método en la lista, esta misma fila queda
+ * seleccionada y expandida sola: no hace falta ningún caso especial.
+ */
+const METODOS: MetodoPago[] = PAGOS_FLAGS.onlinePaymentsEnabled
+  ? ["transferencia", "tarjeta"]
+  : ["transferencia"];
 
 /**
  * Método de pago. Solo una opción se expande a la vez.

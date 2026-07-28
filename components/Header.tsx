@@ -117,7 +117,15 @@ export default function Header({
               </li>
             ))}
           </ul>
-          <Link href={cta.href} className="btn-tierra">
+          {/* Mismo par de tokens que `.btn-naranja` / `Button variant="primary"`
+              (bg-naranja / hover:bg-naranja-oscura / text-tinta): es el acento
+              INTERACTIVO del sistema, el mismo que "Comprar ahora" en el
+              ecommerce. El tamaño de píldora de nav se mantiene tal cual
+              estaba — no es el CTA de ancho completo del checkout. */}
+          <Link
+            href={cta.href}
+            className="inline-flex items-center justify-center rounded-full bg-naranja px-[17px] py-[9px] font-inter text-[12px] font-semibold text-tinta transition-colors duration-200 hover:bg-naranja-oscura"
+          >
             {cta.label}
           </Link>
         </nav>

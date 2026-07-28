@@ -16,6 +16,7 @@ import {
 import { crearPedidoManual } from "@/app/admin/acciones-panel";
 import { ETIQUETA_ENTREGA, ETIQUETA_PAGO, fmtGs, fmtNumero } from "@/lib/admin-formato";
 import { ENTREGAS_VISIBLES, PAGOS_VISIBLES, aEntero } from "@/lib/admin-mutaciones";
+import { PAGOS_FLAGS } from "@/lib/feature-flags";
 import {
   QTY_LINEA_MAX,
   totalesManual,
@@ -51,6 +52,21 @@ const ZONAS: { id: ZonaId; etiqueta: string }[] = [
 ];
 
 const PACKS = PRODUCTO_BUNDLES.map((b) => ({ id: b.id, etiqueta: b.nombreLargo }));
+
+/**
+ * Métodos de pago que se ofrecen en el pedido manual.
+ *
+ * Fase 6E: efectivo y pago online se apagan desde `PAGOS_FLAGS`. El soporte de
+ * los tres métodos sigue intacto en el servidor y en los pedidos históricos;
+ * acá solo se deja de OFRECER lo que está apagado. Con un solo método
+ * disponible, el select queda con esa única opción y no hace falta ningún
+ * mensaje ni estado deshabilitado.
+ */
+const OPCIONES_METODO = ADMIN.manual.metodos.filter((m) => {
+  if (m.id === "efectivo") return PAGOS_FLAGS.manualCashPaymentsEnabled;
+  if (m.id === "tarjeta") return PAGOS_FLAGS.onlinePaymentsEnabled;
+  return true;
+});
 
 const OPCIONES_PAGO = PAGOS_VISIBLES.map((v) => ({ id: v, etiqueta: ETIQUETA_PAGO[v] }));
 const OPCIONES_ENTREGA = ENTREGAS_VISIBLES.map((v) => ({
@@ -346,7 +362,7 @@ export default function ModalPedidoManual({ onCerrar }: { onCerrar: () => void }
             <CampoSelect
               etiqueta={c.metodo}
               valor={metodoPago}
-              opciones={c.metodos as readonly { id: MetodoManual; etiqueta: string }[]}
+              opciones={OPCIONES_METODO as readonly { id: MetodoManual; etiqueta: string }[]}
               error={campos.metodoPago}
               deshabilitado={pendiente}
               onCambio={setMetodoPago}
