@@ -344,3 +344,263 @@ export async function obtenerAbandonados(
 }
 
 export { METRICAS_VACIAS };
+
+/* ------------------------------------------------------------
+   Detalle de un pedido
+   ------------------------------------------------------------ */
+
+export type ItemDetalle = {
+  id: string;
+  sku: string;
+  productName: string;
+  bundleId: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  promocional: boolean;
+};
+
+export type AjusteDetalle = {
+  id: string;
+  descripcion: string | null;
+  revenue: number;
+  cost: number;
+  createdAt: string | null;
+  /** Nombre del administrador que lo cargó, o `null` si ya no está. */
+  responsable: string | null;
+};
+
+export type PedidoDetalle = {
+  id: string;
+  orderNumber: string;
+  source: string;
+  saleDate: string | null;
+  createdAt: string | null;
+
+  cliente: {
+    nombre: string;
+    whatsapp: string;
+    ciudad: string;
+    direccion: string;
+    ubicacion: string | null;
+  };
+
+  paymentMethod: string;
+  paymentStatus: string;
+  orderStatus: string;
+  shippingZone: string;
+  shippingCost: number;
+  clienteEnvioGratis: boolean;
+  vip: boolean;
+  vipCosto: number;
+
+  subtotal: number;
+  descuento: number;
+  total: number;
+  productCostTotal: number;
+  logisticsCost: number;
+  extraRevenueTotal: number;
+  extraCostTotal: number;
+
+  notasInternas: string | null;
+  archivadoEn: string | null;
+
+  items: ItemDetalle[];
+  ajustes: AjusteDetalle[];
+};
+
+/**
+ * Todo lo que necesita el sidebar de detalle, en una sola llamada.
+ *
+ * NO devuelve `confirmation_token` ni `idempotency_key`: son las llaves que
+ * abren la página de gracias y la idempotencia del checkout, y el panel no las
+ * necesita para nada. Lo que no viaja no se puede filtrar.
+ */
+export async function obtenerPedido(
+  id: string,
+): Promise<Resultado<PedidoDetalle | null>> {
+  if (!hayConfiguracionSupabase()) {
+    console.error("[admin] configuración de Supabase incompleta");
+    return { ok: false };
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(
+        "id, order_number, source, sale_date, created_at, " +
+          "customer_name, customer_whatsapp, customer_city, customer_address, customer_location_url, " +
+          "payment_method, payment_status, order_status, " +
+          "shipping_zone, shipping_cost, customer_free_shipping, vip_shipping, vip_shipping_cost, " +
+          "subtotal, discount_amount, total, " +
+          "product_cost_total, logistics_cost, extra_revenue_total, extra_cost_total, " +
+          "internal_notes, archived_at, " +
+          "order_items ( id, sku, product_name, bundle_id, quantity, unit_price, line_total, is_promotional ), " +
+          "order_adjustments ( id, description, revenue_amount, cost_amount, created_at, created_by )",
+      )
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) return fallo("pedido", error);
+    // Un id que no existe NO es un fallo de la consulta: la interfaz lo muestra
+    // como "no encontramos ese pedido" y no como un error de carga.
+    if (!data) return { ok: true, datos: null };
+
+    type ItemCrudo = {
+      id: string;
+      sku: string;
+      product_name: string;
+      bundle_id: string | null;
+      quantity: number | null;
+      unit_price: number | null;
+      line_total: number | null;
+      is_promotional: boolean | null;
+    };
+    type AjusteCrudo = {
+      id: string;
+      description: string | null;
+      revenue_amount: number | null;
+      cost_amount: number | null;
+      created_at: string | null;
+      created_by: string | null;
+    };
+    type Crudo = Record<string, unknown> & {
+      order_items: ItemCrudo[] | null;
+      order_adjustments: AjusteCrudo[] | null;
+    };
+
+    const o = data as unknown as Crudo;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+    const txt = (v: unknown) => (typeof v === "string" ? v : "");
+
+    const ajustesCrudos = [...(o.order_adjustments ?? [])].sort((a, b) =>
+      (b.created_at ?? "").localeCompare(a.created_at ?? ""),
+    );
+
+    // Nombre de quien cargó cada ajuste. Se resuelve en una sola consulta a
+    // `admin_users`, sobre la que el servidor solo tiene SELECT.
+    const responsables = await nombresDeAdmins(
+      ajustesCrudos.map((a) => a.created_by).filter((v): v is string => Boolean(v)),
+    );
+
+    return {
+      ok: true,
+      datos: {
+        id: txt(o.id),
+        orderNumber: txt(o.order_number),
+        source: txt(o.source),
+        saleDate: (o.sale_date as string | null) ?? null,
+        createdAt: (o.created_at as string | null) ?? null,
+
+        cliente: {
+          nombre: txt(o.customer_name),
+          whatsapp: txt(o.customer_whatsapp),
+          ciudad: txt(o.customer_city),
+          direccion: txt(o.customer_address),
+          ubicacion: (o.customer_location_url as string | null) ?? null,
+        },
+
+        paymentMethod: txt(o.payment_method),
+        paymentStatus: txt(o.payment_status),
+        orderStatus: txt(o.order_status),
+        shippingZone: txt(o.shipping_zone),
+        shippingCost: num(o.shipping_cost),
+        clienteEnvioGratis: o.customer_free_shipping === true,
+        vip: o.vip_shipping === true,
+        vipCosto: num(o.vip_shipping_cost),
+
+        subtotal: num(o.subtotal),
+        descuento: num(o.discount_amount),
+        total: num(o.total),
+        productCostTotal: num(o.product_cost_total),
+        logisticsCost: num(o.logistics_cost),
+        extraRevenueTotal: num(o.extra_revenue_total),
+        extraCostTotal: num(o.extra_cost_total),
+
+        notasInternas: (o.internal_notes as string | null) ?? null,
+        archivadoEn: (o.archived_at as string | null) ?? null,
+
+        items: (o.order_items ?? []).map((i) => ({
+          id: i.id,
+          sku: i.sku,
+          productName: i.product_name,
+          bundleId: i.bundle_id,
+          quantity: num(i.quantity),
+          unitPrice: num(i.unit_price),
+          lineTotal: num(i.line_total),
+          promocional: i.is_promotional === true,
+        })),
+
+        ajustes: ajustesCrudos.map((a) => ({
+          id: a.id,
+          descripcion: a.description,
+          revenue: num(a.revenue_amount),
+          cost: num(a.cost_amount),
+          createdAt: a.created_at,
+          responsable: a.created_by ? (responsables.get(a.created_by) ?? null) : null,
+        })),
+      },
+    };
+  } catch (e) {
+    return fallo("pedido", e);
+  }
+}
+
+/**
+ * `user_id` → nombre para mostrar. Los que no estén en `admin_users` —porque
+ * se dio de baja la cuenta— quedan fuera del mapa y la interfaz muestra un
+ * guion, en lugar de un UUID que no le dice nada a nadie.
+ */
+async function nombresDeAdmins(ids: string[]): Promise<Map<string, string>> {
+  const unicos = [...new Set(ids)];
+  const mapa = new Map<string, string>();
+  if (unicos.length === 0) return mapa;
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("admin_users")
+    .select("user_id, display_name")
+    .in("user_id", unicos);
+
+  if (error) {
+    console.error("[admin] no se pudieron leer los nombres de administradores", {
+      codigo: error.code,
+    });
+    return mapa;
+  }
+
+  for (const fila of (data ?? []) as unknown as {
+    user_id: string;
+    display_name: string | null;
+  }[]) {
+    const nombre = fila.display_name?.trim();
+    if (nombre) mapa.set(fila.user_id, nombre);
+  }
+
+  return mapa;
+}
+
+/**
+ * Solo el número de pedido, por id.
+ *
+ * Lo usa el encabezado del sidebar para poder titularse antes de que llegue el
+ * detalle completo. Devuelve cadena vacía si el pedido no existe: el panel se
+ * abre igual y el contenido muestra su estado de "no encontrado".
+ */
+export async function obtenerNumeroPedido(id: string): Promise<string> {
+  if (!hayConfiguracionSupabase()) return "";
+
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("orders")
+      .select("order_number")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return "";
+    return String((data as unknown as { order_number?: unknown }).order_number ?? "");
+  } catch {
+    return "";
+  }
+}

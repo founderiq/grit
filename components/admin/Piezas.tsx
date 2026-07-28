@@ -106,29 +106,39 @@ export function GrillaMetricas({ children }: { children: React.ReactNode }) {
    ------------------------------------------------------------ */
 
 /**
- * Paletas de las píldoras, todas verificadas sobre el fondo `hueso`:
- *   gris-oscuro   #5C564D  ·  6,27:1
- *   gris-tinta    #3A342E  · 11,58:1
- *   tierra-oscura #7A3B2B  ·  7,29:1
- *   verde-texto   #2F5138  ·  8,48:1
- * "Cancelado" va relleno porque es el único estado excepcional y conviene que
- * se despegue del resto de un vistazo.
+ * Tintes de estado. Cada uno es fondo suave + texto oscuro del mismo tono +
+ * borde apenas más marcado que el fondo, para que la píldora tenga cuerpo sin
+ * pesar. Contrastes texto/fondo verificados:
+ *   amarillo 6,30:1 · verde 7,05:1 · rojo 6,43:1 · azul 7,05:1 · violeta 7,41:1
+ *
+ * El color acompaña, no informa: la píldora siempre dice el estado con todas
+ * las letras, así que sigue leyéndose sin distinguir tonos.
  */
+const TINTE = {
+  amarillo: "bg-estado-amarillo-fondo text-estado-amarillo-texto border-estado-amarillo-borde",
+  verde: "bg-estado-verde-fondo text-estado-verde-texto border-estado-verde-borde",
+  rojo: "bg-estado-rojo-fondo text-estado-rojo-texto border-estado-rojo-borde",
+  azul: "bg-estado-azul-fondo text-estado-azul-texto border-estado-azul-borde",
+  violeta: "bg-estado-violeta-fondo text-estado-violeta-texto border-estado-violeta-borde",
+  neutro: "bg-hueso text-gris-oscuro border-borde-claro",
+} as const;
+
 const PALETA_PAGO: Record<EstadoPago, string> = {
-  pendiente: "border-borde-claro text-gris-oscuro",
-  pagado: "border-verde-texto text-verde-texto",
-  cancelado: "border-transparent bg-tierra-oscura text-hueso",
+  pendiente: TINTE.amarillo,
+  pagado: TINTE.verde,
+  cancelado: TINTE.rojo,
 };
 
 const PALETA_ENTREGA: Record<EstadoEntrega, string> = {
-  pendiente: "border-borde-claro text-gris-oscuro",
-  preparado: "border-gris-tinta text-gris-tinta",
-  enviado: "border-tierra-oscura text-tierra-oscura",
-  entregado: "border-verde-texto text-verde-texto",
-  cancelado: "border-transparent bg-tierra-oscura text-hueso",
+  pendiente: TINTE.amarillo,
+  preparado: TINTE.azul,
+  enviado: TINTE.violeta,
+  entregado: TINTE.verde,
+  cancelado: TINTE.rojo,
 };
 
-const PILDORA =
+/** Mismos estilos en la tabla y en el detalle: una sola definición. */
+export const PILDORA =
   "inline-flex items-center rounded-pill border-hairline px-[10px] py-[4px] font-inter text-[11px] font-semibold leading-none";
 
 export function PildoraPago({ estado }: { estado: string | null }) {
@@ -141,11 +151,9 @@ export function PildoraEntrega({ estado }: { estado: string | null }) {
   return <span className={`${PILDORA} ${PALETA_ENTREGA[e]}`}>{ETIQUETA_ENTREGA[e]}</span>;
 }
 
-/** Marca de pedido archivado. Solo aparece cuando se piden los archivados. */
+/** Marca de pedido archivado. Neutra: no es un estado del pedido, es su estante. */
 export function PildoraArchivado() {
-  return (
-    <span className={`${PILDORA} border-borde-claro text-gris-oscuro`}>Archivado</span>
-  );
+  return <span className={`${PILDORA} ${TINTE.neutro}`}>Archivado</span>;
 }
 
 /* ------------------------------------------------------------

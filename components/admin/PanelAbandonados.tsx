@@ -7,7 +7,7 @@ import {
 import type { FiltrosPedidos } from "@/lib/admin-filtros";
 import { ADMIN } from "@/lib/admin-content";
 import Paginacion from "@/components/admin/Paginacion";
-import { EstadoVacio, PanelError } from "@/components/admin/Piezas";
+import { EstadoVacio, PanelError, PILDORA } from "@/components/admin/Piezas";
 
 /**
  * Checkouts abandonados, solo lectura.
@@ -71,9 +71,6 @@ export default async function PanelAbandonados({
   );
 }
 
-const PILDORA =
-  "inline-flex items-center rounded-pill border-hairline px-[10px] py-[4px] font-inter text-[11px] font-semibold leading-none";
-
 function Fila({ c }: { c: AbandonadoFila }) {
   const celda =
     "px-4 py-[13px] align-middle text-[13px] text-tinta first:pl-5 last:pr-5 lg:first:pl-6 lg:last:pr-6";
@@ -120,8 +117,8 @@ function Fila({ c }: { c: AbandonadoFila }) {
         <span
           className={`${PILDORA} ${
             convertido
-              ? "border-verde-texto text-verde-texto"
-              : "border-borde-claro text-gris-oscuro"
+              ? "bg-estado-verde-fondo text-estado-verde-texto border-estado-verde-borde"
+              : "bg-estado-amarillo-fondo text-estado-amarillo-texto border-estado-amarillo-borde"
           }`}
         >
           {convertido ? "Convertido" : "Abandonado"}

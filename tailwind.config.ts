@@ -106,6 +106,43 @@ const config: Config = {
         "verde-texto": "#2F5138", // texto sobre el tinte verde
         "superficie-input": "#FBF9F4", // fondo de inputs en checkout
         pista: "#DCD5C6", // fondo de barras de progreso
+
+        /* ---------------------------------------------------------------
+           Estados del panel administrativo — tintes suaves.
+
+           Cinco pares fondo/texto para las píldoras de estado de pago y de
+           entrega. Son tintes desaturados y cálidos, elegidos para convivir
+           con el hueso del panel: ninguno es un color plano de sistema.
+
+           Los cinco pares están verificados sobre su propio fondo:
+             amarillo 6,30:1 · verde 7,05:1 · rojo 6,43:1
+             azul     7,05:1 · violeta 7,41:1
+           Muy por encima del 4,5:1 que pide AA para texto normal.
+
+           El color nunca es el único indicador: la píldora siempre dice el
+           estado con todas las letras.
+           --------------------------------------------------------------- */
+        estado: {
+          "amarillo-fondo": "#F6E7C4",
+          "amarillo-texto": "#6B4E10",
+          "amarillo-borde": "#E6D2A2",
+
+          "verde-fondo": "#DDE8D8",
+          "verde-texto": "#2F5138", // = verde-texto del ecommerce
+          "verde-borde": "#C6D6C0",
+
+          "rojo-fondo": "#F3DCD5",
+          "rojo-texto": "#7A3B2B", // = tierra-oscura
+          "rojo-borde": "#E2C2B8",
+
+          "azul-fondo": "#D9E3EC",
+          "azul-texto": "#2A4A6B",
+          "azul-borde": "#C2D0DE",
+
+          "violeta-fondo": "#E3DCEC",
+          "violeta-texto": "#4A3A6E",
+          "violeta-borde": "#CFC5DE",
+        },
       },
 
       fontFamily: {

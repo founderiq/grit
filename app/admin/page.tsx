@@ -6,8 +6,10 @@ import FiltrosListado from "@/components/admin/FiltrosListado";
 import HeaderAdmin from "@/components/admin/HeaderAdmin";
 import PanelAbandonados from "@/components/admin/PanelAbandonados";
 import PanelMetricas from "@/components/admin/PanelMetricas";
+import PanelDetalle from "@/components/admin/PanelDetalle";
 import PanelPedidos from "@/components/admin/PanelPedidos";
 import SelectorRango from "@/components/admin/SelectorRango";
+import SidebarPedido from "@/components/admin/SidebarPedido";
 import {
   EncabezadoPanel,
   EsqueletoMetricas,
@@ -16,6 +18,8 @@ import {
 } from "@/components/admin/Piezas";
 import { obtenerEstadoAdmin } from "@/lib/admin-auth";
 import { resolverFiltros } from "@/lib/admin-filtros";
+import { obtenerNumeroPedido } from "@/lib/admin-datos";
+import { esUuid } from "@/lib/pedidos";
 import { resolverRango } from "@/lib/admin-rango";
 import { ADMIN } from "@/lib/admin-content";
 
@@ -89,6 +93,15 @@ export default async function AdminPage({
   const rango = resolverRango(params);
   const filtros = resolverFiltros(params);
 
+  // El pedido abierto viaja en la URL. Se valida como UUID antes de llegar a
+  // ninguna consulta: `?pedido=` lo puede escribir cualquiera.
+  const pedidoAbierto = esUuid(params.pedido) ? params.pedido : null;
+
+  // Solo el número, para poder titular el sidebar antes de que llegue el
+  // detalle completo. Es una consulta mínima por id; el resto del panel sigue
+  // cargando en paralelo detrás de sus <Suspense>.
+  const numeroAbierto = pedidoAbierto ? await obtenerNumeroPedido(pedidoAbierto) : "";
+
   // Las claves de Suspense hacen reaparecer el esqueleto cuando cambia lo que
   // se está pidiendo, en lugar de dejar los datos viejos en pantalla.
   const claveMetricas = `${rango.id}|${rango.desde}|${rango.hasta}`;
@@ -144,16 +157,34 @@ export default async function AdminPage({
 
           <Suspense key={claveListado} fallback={<EsqueletoTabla />}>
             {filtros.tab === "pedidos" ? (
-              <PanelPedidos rango={rango} filtros={filtros} params={params} />
+              <PanelPedidos
+                rango={rango}
+                filtros={filtros}
+                params={params}
+                abierto={pedidoAbierto ?? undefined}
+              />
             ) : (
               <PanelAbandonados filtros={filtros} params={params} />
             )}
           </Suspense>
         </Panel>
       </main>
+
+      {/* --- Detalle -----------------------------------------------------
+          Se monta sobre la página, sin navegar. El contenido llega detrás de
+          su propio <Suspense>: el sidebar se abre enseguida y los datos
+          entran cuando están.                                            */}
+      {pedidoAbierto && (
+        <SidebarPedido numero={numeroAbierto} params={params}>
+          <Suspense key={pedidoAbierto} fallback={<EsqueletoTabla filas={4} />}>
+            <PanelDetalle id={pedidoAbierto} />
+          </Suspense>
+        </SidebarPedido>
+      )}
     </div>
   );
 }
+
 
 /**
  * Pantalla neutra para los estados que no muestran el panel. Deliberadamente

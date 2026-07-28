@@ -84,6 +84,99 @@ export const ADMIN = {
     },
   },
 
+  detalle: {
+    eyebrow: "Detalle de pedido",
+    cerrar: "Cerrar el detalle",
+    verDetalle: (numero: string) => `Ver el detalle del pedido ${numero}`,
+    noEncontrado: "No encontramos ese pedido",
+    noEncontradoDetalle: "Puede haber sido borrado o el enlace estar mal.",
+
+    cliente: {
+      titulo: "Cliente",
+      nombre: "Nombre",
+      whatsapp: "WhatsApp",
+      ciudad: "Ciudad",
+      direccion: "Dirección",
+      ubicacion: "Ubicación",
+      abrirUbicacion: "Abrir ubicación",
+      sinUbicacion: "No proporcionada",
+    },
+
+    pedido: {
+      titulo: "Pedido",
+      origen: "Origen",
+      fecha: "Fecha de venta",
+      metodo: "Método de pago",
+      zona: "Zona de entrega",
+      envioGratis: "Delivery gratis para el cliente",
+      vip: "Envío prioritario VIP",
+      pago: "Estado de pago",
+      entrega: "Estado de entrega",
+      productos: "Productos",
+      extra: "Extra",
+    },
+
+    finanzas: {
+      titulo: "Resumen financiero",
+      ingresos: "Ingresos",
+      subtotal: "Subtotal",
+      descuento: "Descuento",
+      envio: "Envío cobrado al cliente",
+      vip: "Envío prioritario VIP",
+      extras: "Ingresos extra",
+      total: "Total actualizado",
+      costos: "Costos",
+      producto: "Costo de producto",
+      logistica: "Costo logístico",
+      costosExtra: "Costos extra",
+      costoTotal: "Costo total",
+      resultado: "Resultado",
+      ganancia: "Ganancia bruta",
+      margen: "Margen bruto",
+      nota: "El costo de producto y el logístico son el snapshot del momento de la venta: no se recalculan.",
+    },
+
+    gestion: {
+      titulo: "Gestión",
+      pago: "Estado de pago",
+      entrega: "Estado de entrega",
+      notas: "Notas internas",
+      notasPlaceholder: "Solo para el equipo. El cliente nunca las ve.",
+      guardar: "Guardar cambios",
+      guardando: "Guardando…",
+    },
+
+    ajustes: {
+      titulo: "Agregar extra al pedido",
+      revenue: "Venta extra en Gs.",
+      cost: "Costo extra en Gs.",
+      descripcion: "Detalle del extra",
+      descripcionPlaceholder: "Ej: Cliente agregó una pulsera extra.",
+      agregar: "Agregar extra",
+      agregando: "Agregando…",
+      ayuda:
+        "Al menos uno de los dos montos tiene que ser mayor a cero. No modifica el costo original del producto ni el logístico.",
+      historial: "Extras cargados",
+      sinHistorial: "Todavía no hay extras cargados en este pedido.",
+      venta: "Venta",
+      costo: "Costo",
+    },
+
+    archivo: {
+      titulo: "Archivo",
+      archivado: "Pedido archivado",
+      archivadoDetalle:
+        "No aparece en «Activos» ni cuenta en las métricas. Sigue guardado con sus ítems y sus extras.",
+      archivar: "Archivar pedido",
+      archivando: "Archivando…",
+      restaurar: "Restaurar pedido",
+      restaurando: "Restaurando…",
+      confirmar:
+        "¿Archivar este pedido? Deja de contar en las métricas, pero no se borra y lo podés restaurar cuando quieras.",
+      nota: "Archivar es un borrado lógico: el pedido nunca se elimina de la base.",
+    },
+  },
+
   autorizado: {
     mensaje: "Panel administrativo conectado correctamente.",
     detalle:

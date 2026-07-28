@@ -39,6 +39,7 @@ describe("quién entra al panel", () => {
     const r = resolverAcceso(USUARIO, ACTIVO);
     expect(r).toEqual({
       estado: "autorizado",
+      userId: USUARIO.id,
       email: "persona@ejemplo.test",
       nombre: "Nombre Visible",
       role: "admin",
@@ -66,6 +67,11 @@ describe("la autorización no se puede forzar desde el borde", () => {
     const r = resolverAcceso({ id: USUARIO.id, email: null }, ACTIVO);
     expect(r.estado).toBe("autorizado");
     if (r.estado === "autorizado") expect(r.email).toBeNull();
+  });
+
+  it("el userId autorizado sale de la sesión verificada, no del email", () => {
+    const r = resolverAcceso(USUARIO, ACTIVO);
+    if (r.estado === "autorizado") expect(r.userId).toBe(USUARIO.id);
   });
 });
 

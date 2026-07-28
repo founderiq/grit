@@ -33,6 +33,13 @@ export type EstadoAdmin =
   /** Autenticado y autorizado: se muestra el panel. */
   | {
       estado: "autorizado";
+      /**
+       * `user_id` de Supabase Auth. Es lo que se guarda como `changed_by` /
+       * `archived_by` / `created_by` en cada escritura del panel: la identidad
+       * la pone el servidor a partir de la sesión verificada, nunca el
+       * navegador.
+       */
+      userId: string;
       email: string | null;
       nombre: string | null;
       role: string;
@@ -60,6 +67,7 @@ export function resolverAcceso(
 
   return {
     estado: "autorizado",
+    userId: usuario.id,
     email: usuario.email,
     // `display_name` es opcional: si está vacío, la interfaz cae al email.
     nombre: fila.display_name?.trim() || null,
