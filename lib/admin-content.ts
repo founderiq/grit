@@ -30,6 +30,60 @@ export const ADMIN = {
     saliendo: "Saliendo…",
   },
 
+  panel: {
+    eyebrow: "Panel de control",
+    titulo: "Pedidos y oportunidades",
+
+    actualizar: "Actualizar",
+    actualizando: "Actualizando…",
+
+    /** Acciones de escritura: llegan en la próxima fase, hoy deshabilitadas. */
+    proximaFase: "Disponible en la próxima fase",
+    acciones: [
+      { id: "pedido-manual", etiqueta: "Crear pedido manual" },
+      { id: "ad-spend", etiqueta: "Ad Spend" },
+      { id: "costos", etiqueta: "Costos" },
+    ],
+
+    metricas: {
+      eyebrow: "Métricas",
+      titulo: "Resumen general del negocio",
+      detalle: "Calculado por fecha de venta.",
+      rango: "Rango",
+      desde: "Desde",
+      hasta: "Hasta",
+    },
+
+    listado: {
+      tabs: [
+        { id: "pedidos", etiqueta: "Pedidos" },
+        { id: "abandonados", etiqueta: "Abandonados" },
+      ],
+      buscar: "Buscar por nombre, WhatsApp o pedido",
+      buscarCorto: "Buscar",
+      limpiar: "Limpiar búsqueda",
+    },
+
+    paginacion: {
+      anterior: "Anterior",
+      siguiente: "Siguiente",
+      de: (pagina: number, total: number) => `Página ${pagina} de ${total}`,
+    },
+
+    vacio: {
+      pedidos: "No hay pedidos que coincidan con estos filtros.",
+      pedidosDetalle: "Probá ampliar el rango de fechas o quitar algún filtro.",
+      abandonados: "No hay checkouts abandonados registrados todavía.",
+      abandonadosDetalle:
+        "La captura desde el checkout se activa en una fase posterior.",
+    },
+
+    error: {
+      titulo: "No pudimos cargar los datos",
+      detalle: "Probá de nuevo con el botón Actualizar.",
+    },
+  },
+
   autorizado: {
     mensaje: "Panel administrativo conectado correctamente.",
     detalle:

@@ -79,6 +79,13 @@ Con `P` = el conjunto de pedidos válidos del período y `A` = las filas de
 de cada pedido, mantenidas al día por un trigger. Por eso las fórmulas de arriba
 ya incluyen los ajustes sin necesidad de un `join` adicional.
 
+> **Los ajustes se suman una sola vez.** En este esquema, «`extra_cost_total`» y
+> «la suma de `cost_amount` de los ajustes» son exactamente el mismo número —lo
+> mantiene el trigger `order_adjustments_sync`—, igual que
+> `extra_revenue_total` y la suma de `revenue_amount`. Sumar los dos nombres
+> contaría cada ajuste dos veces, así que las fórmulas usan la columna y no
+> vuelven a consultar `order_adjustments`.
+
 **Cancelados** se cuenta aparte, con su propio filtro: no puede salir de `P`,
 que justamente los excluye. Sí se les aplica `archived_at is null`, para no
 contar dos veces un pedido que además se archivó.
@@ -220,7 +227,26 @@ de los dos montos supera cero.
 
 ---
 
-## 5. Verificado
+## 5. Dónde está implementado
+
+| Archivo | Qué hace |
+|---|---|
+| `lib/admin-metricas.ts` | Las catorce fórmulas. Función pura: recibe las filas y el Ad Spend del período, devuelve los números |
+| `lib/admin-rango.ts` | Traduce el selector de rango a un `desde`/`hasta` en `America/Asuncion` |
+| `lib/admin-datos.ts` | Las consultas a Supabase. **Solo servidor** (`server-only`), con la service role |
+| `lib/admin-formato.ts` | Guaraníes, porcentajes, múltiplos y la normalización de estados |
+| `lib/admin-filtros.ts` | Lee y valida los filtros del listado desde la URL |
+
+Las consultas traen únicamente las columnas necesarias de los pedidos **no
+archivados** del rango y agregan en JavaScript. Se prefirió esto a una función
+SQL nueva para no pedir otra migración; a esta escala son unos pocos kilobytes
+por consulta, y la fórmula queda testeada y a la vista. Si el volumen creciera
+mucho, el reemplazo natural es una función `SECURITY DEFINER` que devuelva los
+agregados ya calculados, sin cambiar nada más del panel.
+
+---
+
+## 6. Verificado
 
 Las fórmulas de este documento se ejercitaron contra PostgreSQL 16 local, con la
 suite de la Fase 6A:

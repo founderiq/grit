@@ -1,27 +1,66 @@
+import { Suspense } from "react";
 import AdminLogin from "@/components/admin/AdminLogin";
 import CerrarSesion from "@/components/admin/CerrarSesion";
+import AccionesFuturas from "@/components/admin/AccionesFuturas";
+import FiltrosListado from "@/components/admin/FiltrosListado";
+import HeaderAdmin from "@/components/admin/HeaderAdmin";
+import PanelAbandonados from "@/components/admin/PanelAbandonados";
+import PanelMetricas from "@/components/admin/PanelMetricas";
+import PanelPedidos from "@/components/admin/PanelPedidos";
+import SelectorRango from "@/components/admin/SelectorRango";
+import {
+  EncabezadoPanel,
+  EsqueletoMetricas,
+  EsqueletoTabla,
+  Panel,
+} from "@/components/admin/Piezas";
 import { obtenerEstadoAdmin } from "@/lib/admin-auth";
+import { resolverFiltros } from "@/lib/admin-filtros";
+import { resolverRango } from "@/lib/admin-rango";
 import { ADMIN } from "@/lib/admin-content";
 
 /**
- * /admin — shell mínimo del panel.
+ * /admin — panel administrativo.
  *
- * Es un Server Component: la decisión de qué se muestra se toma en el servidor,
- * antes de enviar nada al navegador. No hay una versión "completa" de esta
- * página escondida detrás de un `if` del cliente, así que no hay nada que
- * revelar desactivando JavaScript o inspeccionando el bundle.
+ * Es un Server Component: qué se muestra y qué datos se leen se deciden en el
+ * servidor, antes de mandar nada al navegador. No hay una versión "completa"
+ * escondida detrás de un `if` del cliente, así que no hay nada que revelar
+ * desactivando JavaScript o mirando el bundle. El navegador tampoco podría
+ * leer los pedidos por su cuenta: con RLS activo y cero políticas, `anon` y
+ * `authenticated` no tienen acceso a ninguna tabla.
  *
  * Tres estados, resueltos por `obtenerEstadoAdmin()`:
- *   · sin sesión      → login dentro de /admin
- *   · sin permiso     → "Acceso no autorizado" (la cuenta existe, el permiso no)
- *   · autorizado      → header del panel
+ *   · sin sesión  → login dentro de /admin
+ *   · sin permiso → "Acceso no autorizado"
+ *   · autorizado  → dashboard
  *
- * `force-dynamic` porque la respuesta depende de la sesión del request: esta
- * ruta no se prerenderiza ni se cachea nunca.
+ * El estado del panel —rango, filtros, pestaña, página— vive en la URL, así que
+ * cada cambio vuelve al servidor y filtra en SQL. Los dos `<Suspense>` hacen
+ * que las métricas y el listado se carguen por separado: una consulta lenta no
+ * bloquea a la otra, y mientras tanto se ve su esqueleto.
+ *
+ * `force-dynamic` porque la respuesta depende de la sesión y de los query
+ * params: esta ruta no se prerenderiza ni se cachea nunca.
  */
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+type ParamsCrudos = Record<string, string | string[] | undefined>;
+
+/** Un query param repetido (`?pago=a&pago=b`) se queda con el primero. */
+function aplanar(crudos: ParamsCrudos): Record<string, string> {
+  const salida: Record<string, string> = {};
+  for (const [clave, valor] of Object.entries(crudos)) {
+    const v = Array.isArray(valor) ? valor[0] : valor;
+    if (typeof v === "string" && v.length > 0) salida[clave] = v;
+  }
+  return salida;
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<ParamsCrudos>;
+}) {
   const acceso = await obtenerEstadoAdmin();
 
   if (acceso.estado === "sin_configuracion") {
@@ -45,39 +84,72 @@ export default async function AdminPage() {
     );
   }
 
+  /* --- Autorizado: se leen los parámetros y se arma el panel -------------- */
+  const params = aplanar(await searchParams);
+  const rango = resolverRango(params);
+  const filtros = resolverFiltros(params);
+
+  // Las claves de Suspense hacen reaparecer el esqueleto cuando cambia lo que
+  // se está pidiendo, en lugar de dejar los datos viejos en pantalla.
+  const claveMetricas = `${rango.id}|${rango.desde}|${rango.hasta}`;
+  const claveListado = [
+    claveMetricas,
+    filtros.tab,
+    filtros.busqueda,
+    filtros.pago,
+    filtros.entrega,
+    filtros.origen,
+    filtros.archivo,
+    filtros.pagina,
+  ].join("|");
+
   return (
     <div className="grit-on-light flex min-h-screen flex-col bg-hueso text-tinta">
-      <header className="border-b border-borde-claro">
-        <div className="mx-auto flex max-w-contenido flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-10">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- ver nota
-                en AdminLogin: next/image acá encarece el bundle de la landing. */}
-            <img src="/img/logo-dark.svg" alt="Grit" width={90} height={18} className="h-4 w-auto" />
-            <span
-              aria-hidden="true"
-              className="hidden h-4 w-px bg-borde-claro sm:block"
-            />
-            <h1 className="m-0 font-archivo text-[14px] font-bold uppercase tracking-[-0.01em] lg:text-[15px]">
-              {ADMIN.titulo}
+      <HeaderAdmin usuario={acceso.nombre ?? acceso.email ?? ""} />
+
+      <main className="mx-auto w-full max-w-[1240px] flex-1 px-5 py-8 lg:px-8 lg:py-10">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="m-0 font-mono text-[9.5px] uppercase tracking-[0.12em] text-gris-oscuro">
+              {ADMIN.panel.eyebrow}
+            </p>
+            <h1 className="m-0 mt-[6px] font-archivo text-[24px] font-extrabold leading-[1.05] tracking-[-0.02em] lg:text-[28px]">
+              {ADMIN.panel.titulo}
+              <span className="text-tierra-oscura">.</span>
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-[12.5px] text-gris-oscuro">
-              {acceso.nombre ?? acceso.email}
-            </span>
-            <CerrarSesion />
-          </div>
+          <AccionesFuturas />
         </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-contenido flex-1 px-5 py-10 lg:px-10 lg:py-14">
-        <p className="m-0 font-archivo text-[18px] font-bold leading-[1.3] lg:text-[20px]">
-          {ADMIN.autorizado.mensaje}
-        </p>
-        <p className="m-0 mt-3 max-w-[560px] text-[13.5px] leading-[1.6] text-gris-oscuro lg:text-[14.5px]">
-          {ADMIN.autorizado.detalle}
-        </p>
+        {/* --- Métricas --------------------------------------------------- */}
+        <Panel className="mt-7">
+          <EncabezadoPanel
+            eyebrow={ADMIN.panel.metricas.eyebrow}
+            titulo={ADMIN.panel.metricas.titulo}
+            detalle={ADMIN.panel.metricas.detalle}
+            derecha={<SelectorRango rango={rango} params={params} />}
+          />
+
+          <Suspense key={claveMetricas} fallback={<EsqueletoMetricas />}>
+            <PanelMetricas rango={rango} />
+          </Suspense>
+        </Panel>
+
+        {/* --- Listado ---------------------------------------------------- */}
+        <Panel className="mt-5">
+          <div className="px-5 pb-4 pt-5 lg:px-6 lg:pt-6">
+            <FiltrosListado filtros={filtros} params={params} />
+          </div>
+
+          <Suspense key={claveListado} fallback={<EsqueletoTabla />}>
+            {filtros.tab === "pedidos" ? (
+              <PanelPedidos rango={rango} filtros={filtros} params={params} />
+            ) : (
+              <PanelAbandonados filtros={filtros} params={params} />
+            )}
+          </Suspense>
+        </Panel>
       </main>
     </div>
   );
@@ -101,7 +173,7 @@ function Aviso({
   return (
     <div className="grit-on-light flex min-h-screen flex-col items-center justify-center bg-hueso px-5 py-12 text-tinta">
       <div className="w-full max-w-[420px]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- ídem. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- ver nota en HeaderAdmin. */}
         <img src="/img/logo-dark.svg" alt="Grit" width={90} height={18} className="h-[18px] w-auto" />
 
         <h1 className="m-0 mt-6 font-archivo text-[22px] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] lg:text-[26px]">
