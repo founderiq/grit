@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { archivarPedido } from "@/app/admin/acciones";
 import { ADMIN } from "@/lib/admin-content";
 import Aviso from "@/components/admin/Aviso";
@@ -18,11 +17,13 @@ import Aviso from "@/components/admin/Aviso";
 export default function BotonArchivar({
   pedidoId,
   archivado,
+  onGuardado,
 }: {
   pedidoId: string;
   archivado: boolean;
+  /** Vuelve a pedir el detalle y refresca métricas y listado. */
+  onGuardado: () => void;
 }) {
-  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [confirmando, setConfirmando] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -35,7 +36,7 @@ export default function BotonArchivar({
       const r = await archivarPedido({ pedidoId, archivar });
       setAviso({ ok: r.ok, texto: r.ok ? r.mensaje : r.error });
       setConfirmando(false);
-      if (r.ok) router.refresh();
+      if (r.ok) onGuardado();
     });
   };
 

@@ -247,9 +247,25 @@ export const telefonoNormalizado = (v: string) => normalizarTelefono(v);
    Envío del pedido al servidor
    ------------------------------------------------------------ */
 
+/**
+ * Cuánto se espera al servidor antes de rendirse.
+ *
+ * El endpoint espera a que Supabase confirme el pedido, y eso es lo único que
+ * espera: el aviso por Telegram y la conversión del checkout abandonado quedan
+ * para después de la respuesta. Veinte segundos es muy por encima de lo normal;
+ * está para que una red caída no deje el botón girando para siempre.
+ */
+export const TIMEOUT_PEDIDO_MS = 20_000;
+
 /** Lo que el navegador manda al endpoint. Sin un solo importe. */
 export type SolicitudPedido = {
   idempotencyKey: string;
+  /**
+   * Clave del checkout abandonado de esta sesión, si existe. El servidor la usa
+   * para marcar esa fila como convertida. Es opcional: sin ella el pedido se
+   * crea igual.
+   */
+  sessionKey?: string | null;
   packId: BundleId;
   qty: number;
   extra: boolean;
@@ -292,10 +308,16 @@ export async function submitOrder(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(solicitud),
+      signal: AbortSignal.timeout(TIMEOUT_PEDIDO_MS),
     });
-  } catch {
-    // Sin red, o el request se cortó antes de llegar.
-    return { ok: false, codigo: "sin_conexion" };
+  } catch (e) {
+    // Se distingue el corte por tiempo de la falta de red: el mensaje que ve el
+    // comprador no puede ser el mismo. Si venció el tiempo, el pedido PUEDE
+    // haberse creado, y la clave de idempotencia hace que reintentar sea
+    // seguro: el segundo intento devuelve el mismo pedido, no otro.
+    const vencio =
+      e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    return { ok: false, codigo: vencio ? "tiempo_agotado" : "sin_conexion" };
   }
 
   let cuerpo: unknown = null;

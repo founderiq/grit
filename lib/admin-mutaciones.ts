@@ -140,8 +140,11 @@ export type ResultadoAjuste =
  * Acepta enteros o el texto de un input numérico. Un decimal se rechaza en
  * lugar de redondearse: el guaraní no tiene centavos y adivinar el monto de un
  * ajuste sería peor que pedirlo de nuevo.
+ *
+ * Se exporta porque la misma regla vale para todos los montos del panel: los
+ * ajustes, el Ad Spend, los costos del negocio y el pedido manual.
  */
-const aEntero = (v: unknown): number | null => {
+export const aEntero = (v: unknown): number | null => {
   if (typeof v === "number") return Number.isInteger(v) ? v : null;
   if (typeof v !== "string") return null;
 

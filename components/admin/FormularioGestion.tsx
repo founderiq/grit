@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { guardarGestion } from "@/app/admin/acciones";
 import { ETIQUETA_ENTREGA, ETIQUETA_PAGO, type EstadoEntrega, type EstadoPago } from "@/lib/admin-formato";
 import { ENTREGAS_VISIBLES, PAGOS_VISIBLES } from "@/lib/admin-mutaciones";
@@ -23,14 +22,16 @@ export default function FormularioGestion({
   pagoInicial,
   entregaInicial,
   notasIniciales,
+  onGuardado,
 }: {
   pedidoId: string;
   pagoInicial: EstadoPago;
   entregaInicial: EstadoEntrega;
   notasIniciales: string;
+  /** Vuelve a pedir el detalle y refresca métricas y listado. */
+  onGuardado: () => void;
 }) {
   const id = useId();
-  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
 
   const [pago, setPago] = useState<EstadoPago>(pagoInicial);
@@ -47,8 +48,8 @@ export default function FormularioGestion({
     iniciar(async () => {
       const r = await guardarGestion({ pedidoId, pago, entrega, notas });
       setAviso({ ok: r.ok, texto: r.ok ? r.mensaje : r.error });
-      // Refresca métricas, tabla y detalle sin recargar la página.
-      if (r.ok) router.refresh();
+      // Refresca detalle, métricas y tabla sin recargar la página.
+      if (r.ok) onGuardado();
     });
   };
 

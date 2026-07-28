@@ -1,4 +1,5 @@
-import { obtenerPedido, type AjusteDetalle, type PedidoDetalle } from "@/lib/admin-datos";
+"use client";
+
 import {
   ETIQUETA_ORIGEN,
   enlaceWhatsapp,
@@ -12,32 +13,30 @@ import {
 } from "@/lib/admin-formato";
 import { resumenPedido } from "@/lib/admin-mutaciones";
 import { ADMIN } from "@/lib/admin-content";
+import type { AjusteDetalle, PedidoDetalle } from "@/lib/admin-tipos";
 import BotonArchivar from "@/components/admin/BotonArchivar";
 import FormularioAjuste from "@/components/admin/FormularioAjuste";
 import FormularioGestion from "@/components/admin/FormularioGestion";
-import {
-  EstadoVacio,
-  PanelError,
-  PildoraEntrega,
-  PildoraPago,
-  PILDORA,
-} from "@/components/admin/Piezas";
+import { PildoraEntrega, PildoraPago, PILDORA } from "@/components/admin/Piezas";
 
 /**
- * Contenido del sidebar de detalle.
+ * Contenido del drawer de detalle.
  *
- * Server Component: lee el pedido con la service role, después de que la página
- * verificó que hay un administrador activo. Los formularios que sí necesitan
- * estado son componentes de cliente, pero escriben mediante Server Actions:
- * el navegador nunca toca la base.
+ * Es un componente de cliente y recibe el pedido ya cargado: los datos llegan
+ * por `GET /api/admin/pedidos/[id]`, que autoriza en el servidor y lee con la
+ * service role. El navegador nunca consulta la base; solo pinta lo que ese
+ * endpoint le devolvió.
+ *
+ * Los formularios escriben mediante Server Actions y, al terminar, piden un
+ * refresco del detalle: por eso `onCambio` es obligatorio.
  */
-export default async function PanelDetalle({ id }: { id: string }) {
-  const res = await obtenerPedido(id);
-
-  if (!res.ok) return <PanelError />;
-  if (!res.datos) return <DetalleNoEncontrado />;
-
-  const p = res.datos;
+export default function DetallePedido({
+  pedido: p,
+  onCambio,
+}: {
+  pedido: PedidoDetalle;
+  onCambio: () => void;
+}) {
   const archivado = p.archivadoEn !== null;
 
   return (
@@ -70,9 +69,13 @@ export default async function PanelDetalle({ id }: { id: string }) {
           {ETIQUETA_ORIGEN[p.source] ?? p.source}
         </Dato>
         <Dato etiqueta={ADMIN.detalle.pedido.fecha}>{fmtFechaCorta(p.saleDate)}</Dato>
-        <Dato etiqueta={ADMIN.detalle.pedido.metodo}>{METODO[p.paymentMethod] ?? p.paymentMethod}</Dato>
+        <Dato etiqueta={ADMIN.detalle.pedido.metodo}>
+          {METODO[p.paymentMethod] ?? p.paymentMethod}
+        </Dato>
         <Dato etiqueta={ADMIN.detalle.pedido.zona}>{ZONA[p.shippingZone] ?? p.shippingZone}</Dato>
-        <Dato etiqueta={ADMIN.detalle.pedido.envioGratis}>{p.clienteEnvioGratis ? "Sí" : "No"}</Dato>
+        <Dato etiqueta={ADMIN.detalle.pedido.envioGratis}>
+          {p.clienteEnvioGratis ? "Sí" : "No"}
+        </Dato>
         <Dato etiqueta={ADMIN.detalle.pedido.vip}>{p.vip ? "Sí" : "No"}</Dato>
         <Dato etiqueta={ADMIN.detalle.pedido.pago}>
           <PildoraPago estado={p.paymentStatus} />
@@ -92,7 +95,9 @@ export default async function PanelDetalle({ id }: { id: string }) {
                 <span className="text-[13px] leading-[1.35] text-tinta">
                   {i.productName}
                   {i.promocional && (
-                    <span className={`${PILDORA} ml-2 align-middle bg-estado-violeta-fondo text-estado-violeta-texto border-estado-violeta-borde`}>
+                    <span
+                      className={`${PILDORA} ml-2 border-estado-violeta-borde bg-estado-violeta-fondo align-middle text-estado-violeta-texto`}
+                    >
                       {ADMIN.detalle.pedido.extra}
                     </span>
                   )}
@@ -113,32 +118,31 @@ export default async function PanelDetalle({ id }: { id: string }) {
 
       <Bloque titulo={ADMIN.detalle.gestion.titulo}>
         <FormularioGestion
+          // La `key` reinicia los campos cuando cambia el pedido abierto: el
+          // drawer no se desmonta al pasar de un pedido a otro.
+          key={`gestion-${p.id}`}
           pedidoId={p.id}
           pagoInicial={normalizarPago(p.paymentStatus)}
           entregaInicial={normalizarEntrega(p.orderStatus)}
           notasIniciales={p.notasInternas ?? ""}
+          onGuardado={onCambio}
         />
       </Bloque>
 
       <Bloque titulo={ADMIN.detalle.ajustes.titulo}>
-        <FormularioAjuste pedidoId={p.id} />
+        <FormularioAjuste key={`ajuste-${p.id}`} pedidoId={p.id} onGuardado={onCambio} />
         <HistorialAjustes ajustes={p.ajustes} />
       </Bloque>
 
       <Bloque titulo={ADMIN.detalle.archivo.titulo}>
-        <BotonArchivar pedidoId={p.id} archivado={archivado} />
+        <BotonArchivar
+          key={`archivo-${p.id}`}
+          pedidoId={p.id}
+          archivado={archivado}
+          onGuardado={onCambio}
+        />
       </Bloque>
     </div>
-  );
-}
-
-/** Estado para un id que no existe. No dice por qué: puede no ser tuyo. */
-function DetalleNoEncontrado() {
-  return (
-    <EstadoVacio
-      titulo={ADMIN.detalle.noEncontrado}
-      detalle={ADMIN.detalle.noEncontradoDetalle}
-    />
   );
 }
 
@@ -202,7 +206,9 @@ function Ubicacion({ url }: { url: string | null }) {
   const limpia = (url ?? "").trim();
   const valida = /^https?:\/\//i.test(limpia);
 
-  if (!valida) return <span className="text-gris-oscuro">{ADMIN.detalle.cliente.sinUbicacion}</span>;
+  if (!valida) {
+    return <span className="text-gris-oscuro">{ADMIN.detalle.cliente.sinUbicacion}</span>;
+  }
 
   return (
     <a
@@ -288,7 +294,10 @@ function HistorialAjustes({ ajustes }: { ajustes: AjusteDetalle[] }) {
       ) : (
         <ul className="m-0 mt-3 list-none space-y-3 p-0">
           {ajustes.map((a) => (
-            <li key={a.id} className="rounded-strip border-hairline border-borde-claro bg-hueso px-3 py-[10px]">
+            <li
+              key={a.id}
+              className="rounded-strip border-hairline border-borde-claro bg-hueso px-3 py-[10px]"
+            >
               <p className="m-0 text-[12.5px] leading-[1.4] text-tinta">{a.descripcion ?? "—"}</p>
 
               <p className="m-0 mt-[6px] text-[11.5px] tabular-nums text-gris-oscuro">

@@ -10,9 +10,38 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const TOKEN_FALSO = "987654321:BBotroTOKENfalsoQUEnoDEBEfiltrarse";
 
+/* --- `after()` mockeado -------------------------------------------------
+   El endpoint manda Telegram y la conversión del abandonado con `after()`,
+   que fuera de un request de Next lanza. Acá se reemplaza por algo que corre
+   el callback y guarda su promesa, para poder esperarla en las pruebas: lo
+   que se quiere verificar es QUÉ se ejecuta después de responder, no el
+   mecanismo de Next.                                                      */
+const posteriores: Promise<unknown>[] = [];
+
+vi.mock("next/server", async () => {
+  const real = await vi.importActual<typeof import("next/server")>("next/server");
+  return {
+    ...real,
+    after: (cb: () => unknown) => {
+      posteriores.push(Promise.resolve().then(cb));
+    },
+  };
+});
+
 /* --- Supabase mockeado ------------------------------------------------- */
 const rpcMock = vi.fn();
 const single = vi.fn();
+const updateMock = vi.fn();
+
+/** Cadena mínima de PostgREST para la conversión del checkout abandonado. */
+const fromMock = vi.fn(() => ({
+  update: (fila: unknown) => {
+    updateMock(fila);
+    return {
+      eq: () => ({ neq: () => Promise.resolve({ error: null }) }),
+    };
+  },
+}));
 
 vi.mock("@/lib/supabase-admin", async () => {
   const real = await vi.importActual<typeof import("@/lib/supabase-admin")>(
@@ -20,7 +49,7 @@ vi.mock("@/lib/supabase-admin", async () => {
   );
   return {
     ...real,
-    getSupabaseAdmin: () => ({ rpc: rpcMock }),
+    getSupabaseAdmin: () => ({ rpc: rpcMock, from: fromMock }),
     hayConfiguracionSupabase: () => true,
   };
 });
@@ -45,14 +74,24 @@ const CUERPO_OK = {
   },
 };
 
-const pedir = (cuerpo: unknown = CUERPO_OK) =>
-  POST(
+/**
+ * Llama al endpoint y espera también a lo que quedó agendado con `after()`.
+ *
+ * En producción esa parte corre después de que la respuesta salió; acá se la
+ * espera para poder afirmar sobre ella. Que el comprador NO la espere es
+ * justamente el punto del cambio, y eso se verifica por separado.
+ */
+const pedir = async (cuerpo: unknown = CUERPO_OK) => {
+  const res = await POST(
     new Request("http://localhost/api/pedidos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cuerpo),
     }),
   );
+  await Promise.all(posteriores.splice(0));
+  return res;
+};
 
 const filaCreada = (over: Record<string, unknown> = {}) => ({
   data: {
@@ -74,6 +113,9 @@ let errores: unknown[][] = [];
 beforeEach(() => {
   rpcMock.mockReset();
   single.mockReset();
+  fromMock.mockClear();
+  updateMock.mockReset();
+  posteriores.length = 0;
   rpcMock.mockReturnValue({ single });
   fetchMock.mockReset();
   fetchMock.mockResolvedValue({ ok: true, status: 200 });

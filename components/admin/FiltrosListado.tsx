@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import {
   OPCIONES_ARCHIVO,
   OPCIONES_ENTREGA,
+  OPCIONES_ESTADO_ABANDONO,
   OPCIONES_ORIGEN,
   OPCIONES_PAGO,
   type FiltrosPedidos,
@@ -41,7 +42,20 @@ export default function FiltrosListado({
   const clasesSelect =
     "min-h-11 w-full rounded-strip border-hairline border-borde-claro bg-superficie-input px-[12px] py-[9px] font-inter text-[13px] text-tinta disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto";
 
-  const buscar = () => ir({ q: texto.trim(), pagina: null });
+  /**
+   * Busca solo si el término cambió.
+   *
+   * Enter y blur pueden dispararse casi juntos —al deshabilitarse mientras
+   * navega, el campo pierde el foco y llama a `onBlur`—, y dos navegaciones
+   * idénticas encimadas dejaban el control ocupado para siempre. Comparar
+   * contra lo que el servidor YA aplicó corta el segundo viaje, que además no
+   * habría cambiado nada.
+   */
+  const buscar = () => {
+    const t = texto.trim();
+    if (t === filtros.busqueda) return;
+    ir({ q: t, pagina: null });
+  };
 
   return (
     <div className="flex flex-col gap-4" aria-busy={pendiente || undefined}>
@@ -73,33 +87,50 @@ export default function FiltrosListado({
         })}
       </div>
 
-      {/* --- Filtros de pedidos -------------------------------------------
-          El tab de abandonados todavía no tiene filtros propios: mostrar los
-          de pedidos ahí sugeriría que hacen algo.                          */}
-      {enPedidos && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="sm:min-w-[240px] sm:flex-1">
-            <label htmlFor={`${id}-q`} className="sr-only">
-              {ADMIN.panel.listado.buscar}
-            </label>
-            <input
-              id={`${id}-q`}
-              type="search"
-              value={texto}
-              disabled={pendiente}
-              placeholder={ADMIN.panel.listado.buscar}
-              onChange={(e) => setTexto(e.target.value)}
-              onBlur={buscar}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  buscar();
-                }
-              }}
-              className="min-h-11 w-full rounded-strip border-hairline border-borde-claro bg-superficie-input px-[14px] py-[9px] font-inter text-[13px] text-tinta placeholder:text-gris-oscuro disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+      {/* --- Filtros ------------------------------------------------------
+          Las dos pestañas comparten el buscador y el selector de archivados,
+          porque en las dos significan lo mismo. Los que solo aplican a una se
+          muestran únicamente ahí: un filtro que no hace nada es peor que uno
+          que falta.                                                        */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="sm:min-w-[240px] sm:flex-1">
+          <label htmlFor={`${id}-q`} className="sr-only">
+            {enPedidos ? ADMIN.panel.listado.buscar : ADMIN.panel.listado.buscarAbandonados}
+          </label>
+          <input
+            id={`${id}-q`}
+            type="search"
+            value={texto}
+            disabled={pendiente}
+            placeholder={
+              enPedidos ? ADMIN.panel.listado.buscar : ADMIN.panel.listado.buscarAbandonados
+            }
+            onChange={(e) => setTexto(e.target.value)}
+            onBlur={buscar}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                buscar();
+              }
+            }}
+            className="min-h-11 w-full rounded-strip border-hairline border-borde-claro bg-superficie-input px-[14px] py-[9px] font-inter text-[13px] text-tinta placeholder:text-gris-oscuro disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
 
+        {!enPedidos && (
+          <Select
+            id={`${id}-estado`}
+            etiqueta="Filtrar por estado"
+            valor={filtros.estado}
+            opciones={OPCIONES_ESTADO_ABANDONO}
+            onChange={(v) => ir({ estado: v === "todos" ? null : v, pagina: null })}
+            disabled={pendiente}
+            className={clasesSelect}
+          />
+        )}
+
+        {enPedidos && (
+          <>
           <Select
             id={`${id}-pago`}
             etiqueta="Filtrar por pago"
@@ -130,17 +161,19 @@ export default function FiltrosListado({
             className={clasesSelect}
           />
 
-          <Select
-            id={`${id}-archivo`}
-            etiqueta="Mostrar archivados"
-            valor={filtros.archivo}
-            opciones={OPCIONES_ARCHIVO}
-            onChange={(v) => ir({ archivo: v === "activos" ? null : v, pagina: null })}
-            disabled={pendiente}
-            className={clasesSelect}
-          />
-        </div>
-      )}
+          </>
+        )}
+
+        <Select
+          id={`${id}-archivo`}
+          etiqueta="Mostrar archivados"
+          valor={filtros.archivo}
+          opciones={OPCIONES_ARCHIVO}
+          onChange={(v) => ir({ archivo: v === "activos" ? null : v, pagina: null })}
+          disabled={pendiente}
+          className={clasesSelect}
+        />
+      </div>
     </div>
   );
 }

@@ -16,6 +16,8 @@ export type FiltroPago = "todos" | EstadoPago;
 export type FiltroEntrega = "todas" | EstadoEntrega;
 export type FiltroOrigen = "todos" | "web" | "manual";
 export type FiltroArchivo = "activos" | "archivados" | "todos";
+/** Solo aplica a la pestaña de abandonados. */
+export type FiltroEstadoAbandono = "todos" | "abandoned" | "converted";
 
 export type FiltrosPedidos = {
   tab: Tab;
@@ -24,6 +26,7 @@ export type FiltrosPedidos = {
   entrega: FiltroEntrega;
   origen: FiltroOrigen;
   archivo: FiltroArchivo;
+  estado: FiltroEstadoAbandono;
   pagina: number;
 };
 
@@ -58,6 +61,12 @@ export const OPCIONES_ARCHIVO: { id: FiltroArchivo; etiqueta: string }[] = [
   { id: "activos", etiqueta: "Activos" },
   { id: "archivados", etiqueta: "Archivados" },
   { id: "todos", etiqueta: "Todos" },
+];
+
+export const OPCIONES_ESTADO_ABANDONO: { id: FiltroEstadoAbandono; etiqueta: string }[] = [
+  { id: "todos", etiqueta: "Todos los estados" },
+  { id: "abandoned", etiqueta: "Abandonado" },
+  { id: "converted", etiqueta: "Convertido" },
 ];
 
 const unaDe = <T extends string>(v: unknown, validos: readonly T[], porDefecto: T): T =>
@@ -104,6 +113,7 @@ export function resolverFiltros(
     // Por defecto el panel muestra solo los pedidos activos: los archivados
     // están archivados justamente para no estorbar.
     archivo: unaDe(params.archivo, ["activos", "archivados", "todos"] as const, "activos"),
+    estado: unaDe(params.estado, ["todos", "abandoned", "converted"] as const, "todos"),
     pagina: Number.isInteger(paginaCruda) && paginaCruda > 0 ? paginaCruda : 1,
   };
 }

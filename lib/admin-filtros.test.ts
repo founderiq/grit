@@ -13,6 +13,7 @@ describe("filtros por defecto", () => {
       busqueda: "",
       pago: "todos",
       entrega: "todas",
+      estado: "todos",
       origen: "todos",
       archivo: "activos",
       pagina: 1,

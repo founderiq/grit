@@ -37,8 +37,7 @@ export const ADMIN = {
     actualizar: "Actualizar",
     actualizando: "Actualizando…",
 
-    /** Acciones de escritura: llegan en la próxima fase, hoy deshabilitadas. */
-    proximaFase: "Disponible en la próxima fase",
+    /** Las tres acciones de escritura del panel. */
     acciones: [
       { id: "pedido-manual", etiqueta: "Crear pedido manual" },
       { id: "ad-spend", etiqueta: "Ad Spend" },
@@ -60,6 +59,7 @@ export const ADMIN = {
         { id: "abandonados", etiqueta: "Abandonados" },
       ],
       buscar: "Buscar por nombre, WhatsApp o pedido",
+      buscarAbandonados: "Buscar por nombre, WhatsApp o ciudad",
       buscarCorto: "Buscar",
       limpiar: "Limpiar búsqueda",
     },
@@ -73,9 +73,9 @@ export const ADMIN = {
     vacio: {
       pedidos: "No hay pedidos que coincidan con estos filtros.",
       pedidosDetalle: "Probá ampliar el rango de fechas o quitar algún filtro.",
-      abandonados: "No hay checkouts abandonados registrados todavía.",
+      abandonados: "No hay checkouts abandonados que coincidan con estos filtros.",
       abandonadosDetalle:
-        "La captura desde el checkout se activa en una fase posterior.",
+        "Se registran cuando alguien empieza el checkout y deja su nombre y su WhatsApp.",
     },
 
     error: {
@@ -175,6 +175,131 @@ export const ADMIN = {
         "¿Archivar este pedido? Deja de contar en las métricas, pero no se borra y lo podés restaurar cuando quieras.",
       nota: "Archivar es un borrado lógico: el pedido nunca se elimina de la base.",
     },
+  },
+
+  /** Textos compartidos por los tres formularios del panel. */
+  formulario: {
+    cancelar: "Cancelar",
+    cerrar: "Cerrar",
+    guardar: "Guardar",
+    guardando: "Guardando…",
+    salirSinGuardar:
+      "Hay cambios sin guardar. ¿Querés cerrar de todas formas y perderlos?",
+  },
+
+  manual: {
+    eyebrow: "Pedido manual",
+    titulo: "Cargar un pedido",
+    intro:
+      "Para las ventas cerradas por WhatsApp, en persona o por Instagram. Se guarda con los mismos costos y entra en las métricas como cualquier otro pedido.",
+
+    cliente: "Cliente y entrega",
+    nombre: "Nombre",
+    whatsapp: "WhatsApp",
+    ciudad: "Ciudad",
+    direccion: "Dirección",
+    ubicacion: "Ubicación (opcional)",
+    ubicacionPlaceholder: "https://maps.app.goo.gl/…",
+    zona: "Zona de entrega",
+
+    productos: "Productos",
+    agregarLinea: "Agregar producto",
+    quitarLinea: "Quitar",
+    cantidad: "Cantidad",
+    extra: "Sumar la pulsera extra promocional",
+    extraDetalle: "Una sola por pedido, igual que en el ecommerce.",
+
+    cobro: "Cobro",
+    envioCobrado: "Envío cobrado al cliente en Gs.",
+    envioAyuda:
+      "Es lo que paga el cliente. El costo logístico real lo calcula el sistema según la zona.",
+    descuento: "Descuento en Gs.",
+    vip: "Envío Prioritario VIP",
+
+    estados: "Estado y fecha",
+    metodo: "Método de pago",
+    metodos: [
+      { id: "transferencia", etiqueta: "Transferencia bancaria" },
+      { id: "efectivo", etiqueta: "Efectivo" },
+      { id: "tarjeta", etiqueta: "Pago online / tarjeta" },
+    ],
+    pago: "Estado de pago",
+    entrega: "Estado de entrega",
+    fecha: "Fecha de venta",
+    notas: "Notas internas (opcional)",
+
+    resumen: "Resumen",
+    subtotal: "Subtotal",
+    descuentoResumen: "Descuento",
+    envio: "Envío",
+    vipResumen: "Envío VIP",
+    total: "Total",
+    pulseras: "Pulseras",
+
+    crear: "Crear pedido",
+    creando: "Creando…",
+    otro: "Cargar otro pedido",
+    sinTelegram: "No se envía aviso por Telegram: ese aviso es solo para pedidos del checkout web.",
+  },
+
+  costos: {
+    eyebrow: "Configuración",
+    titulo: "Costos del negocio",
+    intro:
+      "Se usan para calcular la ganancia de cada pedido nuevo. Todos los montos son enteros en guaraníes.",
+    producto: "Costo por pulsera",
+    productoAyuda: "Lo que le cuesta al negocio cada pulsera.",
+    asuncion: "Costo logístico · Asunción",
+    asuncionAyuda: "Costo real de una entrega en Asunción o Gran Asunción.",
+    interior: "Costo logístico · Interior",
+    interiorAyuda: "Costo real de un envío al interior o encomienda.",
+    aviso: "Los cambios se aplican solamente a pedidos nuevos.",
+    avisoDetalle:
+      "Cada pedido guardó su costo al momento de la venta y no se recalcula nunca.",
+    actualizado: "Última actualización",
+  },
+
+  adSpend: {
+    eyebrow: "Inversión publicitaria",
+    titulo: "Ad Spend",
+    intro:
+      "Lo invertido en publicidad, por día. Alimenta el CPA, el ROAS, la ganancia neta y el margen neto del rango que estés mirando.",
+    fecha: "Fecha",
+    monto: "Monto en Gs.",
+    nota: "Nota (opcional)",
+    notaPlaceholder: "Ej: campaña de Instagram.",
+    agregar: "Registrar inversión",
+    agregando: "Registrando…",
+    editar: "Editar",
+    guardarEdicion: "Guardar cambios",
+    cancelarEdicion: "Cancelar edición",
+    eliminar: "Eliminar",
+    eliminando: "Eliminando…",
+    confirmar: "¿Eliminar esta inversión? Deja de contar en las métricas.",
+    si: "Sí, eliminar",
+    no: "No",
+    historial: "Inversiones registradas",
+    sinHistorial: "Todavía no hay inversiones registradas.",
+    nota_borrado: "Eliminar es un borrado lógico: la fila no se pierde.",
+  },
+
+  abandonados: {
+    archivar: "Archivar",
+    archivando: "Archivando…",
+    restaurar: "Restaurar",
+    restaurando: "Restaurando…",
+    archivado: "Archivado",
+    fallo: "No se pudo. Reintentar",
+    convertido: "Convertido",
+    abandonado: "Abandonado",
+    sinNombre: "Sin nombre",
+    pasos: {
+      contacto: "Contacto",
+      entrega: "Entrega",
+      seleccion: "Selección",
+      pago: "Pago",
+      review: "Revisión",
+    } as Record<string, string>,
   },
 
   autorizado: {

@@ -1,15 +1,15 @@
 import { Suspense } from "react";
+import Logo from "@/components/Logo";
 import AdminLogin from "@/components/admin/AdminLogin";
 import CerrarSesion from "@/components/admin/CerrarSesion";
-import AccionesFuturas from "@/components/admin/AccionesFuturas";
+import AccionesPanel from "@/components/admin/AccionesPanel";
 import FiltrosListado from "@/components/admin/FiltrosListado";
 import HeaderAdmin from "@/components/admin/HeaderAdmin";
 import PanelAbandonados from "@/components/admin/PanelAbandonados";
 import PanelMetricas from "@/components/admin/PanelMetricas";
-import PanelDetalle from "@/components/admin/PanelDetalle";
 import PanelPedidos from "@/components/admin/PanelPedidos";
 import SelectorRango from "@/components/admin/SelectorRango";
-import SidebarPedido from "@/components/admin/SidebarPedido";
+import DrawerPedidos from "@/components/admin/DrawerPedidos";
 import {
   EncabezadoPanel,
   EsqueletoMetricas,
@@ -18,7 +18,6 @@ import {
 } from "@/components/admin/Piezas";
 import { obtenerEstadoAdmin } from "@/lib/admin-auth";
 import { resolverFiltros } from "@/lib/admin-filtros";
-import { obtenerNumeroPedido } from "@/lib/admin-datos";
 import { esUuid } from "@/lib/pedidos";
 import { resolverRango } from "@/lib/admin-rango";
 import { ADMIN } from "@/lib/admin-content";
@@ -74,7 +73,7 @@ export default async function AdminPage({
   }
 
   if (acceso.estado === "sin_sesion") {
-    return <AdminLogin />;
+    return <AdminLogin logo={<Logo variante="auth" sobre="claro" />} />;
   }
 
   if (acceso.estado === "no_autorizado") {
@@ -93,14 +92,10 @@ export default async function AdminPage({
   const rango = resolverRango(params);
   const filtros = resolverFiltros(params);
 
-  // El pedido abierto viaja en la URL. Se valida como UUID antes de llegar a
-  // ninguna consulta: `?pedido=` lo puede escribir cualquiera.
+  // El pedido abierto viaja en la URL. Se valida como UUID acá para no pasarle
+  // basura al drawer: `?pedido=` lo puede escribir cualquiera. Solo importa al
+  // cargar la página; después el drawer maneja la URL por su cuenta.
   const pedidoAbierto = esUuid(params.pedido) ? params.pedido : null;
-
-  // Solo el número, para poder titular el sidebar antes de que llegue el
-  // detalle completo. Es una consulta mínima por id; el resto del panel sigue
-  // cargando en paralelo detrás de sus <Suspense>.
-  const numeroAbierto = pedidoAbierto ? await obtenerNumeroPedido(pedidoAbierto) : "";
 
   // Las claves de Suspense hacen reaparecer el esqueleto cuando cambia lo que
   // se está pidiendo, en lugar de dejar los datos viejos en pantalla.
@@ -117,71 +112,58 @@ export default async function AdminPage({
   ].join("|");
 
   return (
-    <div className="grit-on-light flex min-h-screen flex-col bg-hueso text-tinta">
-      <HeaderAdmin usuario={acceso.nombre ?? acceso.email ?? ""} />
+    /* El drawer del detalle envuelve todo el panel: las filas de la tabla lo
+       abren por contexto, sin navegar. Ver components/admin/DrawerPedidos.tsx. */
+    <DrawerPedidos pedidoInicial={pedidoAbierto}>
+      <div className="grit-on-light flex min-h-screen flex-col bg-hueso text-tinta">
+        <HeaderAdmin usuario={acceso.nombre ?? acceso.email ?? ""} />
 
-      <main className="mx-auto w-full max-w-[1240px] flex-1 px-5 py-8 lg:px-8 lg:py-10">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="m-0 font-mono text-[9.5px] uppercase tracking-[0.12em] text-gris-oscuro">
-              {ADMIN.panel.eyebrow}
-            </p>
-            <h1 className="m-0 mt-[6px] font-archivo text-[24px] font-extrabold leading-[1.05] tracking-[-0.02em] lg:text-[28px]">
-              {ADMIN.panel.titulo}
-              <span className="text-tierra-oscura">.</span>
-            </h1>
+        <main className="mx-auto w-full max-w-[1240px] flex-1 px-5 py-8 lg:px-8 lg:py-10">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div>
+              <p className="m-0 font-mono text-[9.5px] uppercase tracking-[0.12em] text-gris-oscuro">
+                {ADMIN.panel.eyebrow}
+              </p>
+              <h1 className="m-0 mt-[6px] font-archivo text-[24px] font-extrabold leading-[1.05] tracking-[-0.02em] lg:text-[28px]">
+                {ADMIN.panel.titulo}
+                <span className="text-tierra-oscura">.</span>
+              </h1>
+            </div>
+
+            <AccionesPanel />
           </div>
 
-          <AccionesFuturas />
-        </div>
+          {/* --- Métricas ------------------------------------------------- */}
+          <Panel className="mt-7">
+            <EncabezadoPanel
+              eyebrow={ADMIN.panel.metricas.eyebrow}
+              titulo={ADMIN.panel.metricas.titulo}
+              detalle={ADMIN.panel.metricas.detalle}
+              derecha={<SelectorRango rango={rango} params={params} />}
+            />
 
-        {/* --- Métricas --------------------------------------------------- */}
-        <Panel className="mt-7">
-          <EncabezadoPanel
-            eyebrow={ADMIN.panel.metricas.eyebrow}
-            titulo={ADMIN.panel.metricas.titulo}
-            detalle={ADMIN.panel.metricas.detalle}
-            derecha={<SelectorRango rango={rango} params={params} />}
-          />
+            <Suspense key={claveMetricas} fallback={<EsqueletoMetricas />}>
+              <PanelMetricas rango={rango} />
+            </Suspense>
+          </Panel>
 
-          <Suspense key={claveMetricas} fallback={<EsqueletoMetricas />}>
-            <PanelMetricas rango={rango} />
-          </Suspense>
-        </Panel>
+          {/* --- Listado -------------------------------------------------- */}
+          <Panel className="mt-5">
+            <div className="px-5 pb-4 pt-5 lg:px-6 lg:pt-6">
+              <FiltrosListado filtros={filtros} params={params} />
+            </div>
 
-        {/* --- Listado ---------------------------------------------------- */}
-        <Panel className="mt-5">
-          <div className="px-5 pb-4 pt-5 lg:px-6 lg:pt-6">
-            <FiltrosListado filtros={filtros} params={params} />
-          </div>
-
-          <Suspense key={claveListado} fallback={<EsqueletoTabla />}>
-            {filtros.tab === "pedidos" ? (
-              <PanelPedidos
-                rango={rango}
-                filtros={filtros}
-                params={params}
-                abierto={pedidoAbierto ?? undefined}
-              />
-            ) : (
-              <PanelAbandonados filtros={filtros} params={params} />
-            )}
-          </Suspense>
-        </Panel>
-      </main>
-
-      {/* --- Detalle -----------------------------------------------------
-          Se monta sobre la página, sin navegar. El contenido llega detrás de
-          su propio <Suspense>: el sidebar se abre enseguida y los datos
-          entran cuando están.                                            */}
-      {pedidoAbierto && (
-        <SidebarPedido numero={numeroAbierto} params={params}>
-          <Suspense key={pedidoAbierto} fallback={<EsqueletoTabla filas={4} />}>
-            <PanelDetalle id={pedidoAbierto} />
-          </Suspense>
-        </SidebarPedido>
-      )}
-    </div>
+            <Suspense key={claveListado} fallback={<EsqueletoTabla />}>
+              {filtros.tab === "pedidos" ? (
+                <PanelPedidos rango={rango} filtros={filtros} params={params} />
+              ) : (
+                <PanelAbandonados filtros={filtros} params={params} />
+              )}
+            </Suspense>
+          </Panel>
+        </main>
+      </div>
+    </DrawerPedidos>
   );
 }
 
@@ -204,8 +186,7 @@ function Aviso({
   return (
     <div className="grit-on-light flex min-h-screen flex-col items-center justify-center bg-hueso px-5 py-12 text-tinta">
       <div className="w-full max-w-[420px]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- ver nota en HeaderAdmin. */}
-        <img src="/img/logo-dark.svg" alt="Grit" width={90} height={18} className="h-[18px] w-auto" />
+        <Logo variante="auth" sobre="claro" />
 
         <h1 className="m-0 mt-6 font-archivo text-[22px] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] lg:text-[26px]">
           {titulo}

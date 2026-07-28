@@ -23,7 +23,7 @@ import { ADMIN } from "@/lib/admin-content";
  * `router.refresh()` y es el servidor el que vuelve a decidir qué mostrar,
  * consultando `admin_users`.
  */
-export default function AdminLogin() {
+export default function AdminLogin({ logo }: { logo: React.ReactNode }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,12 +62,7 @@ export default function AdminLogin() {
   return (
     <div className="grit-on-light flex min-h-screen flex-col items-center justify-center bg-hueso px-5 py-12 text-tinta">
       <div className="w-full max-w-[380px]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- El panel usa
-            <img> a propósito, no next/image: importarlo acá haría que webpack
-            parta el chunk que comparte con la landing y le sumaría ~0,6 KB al
-            First Load JS de "/". Es un SVG estático servido desde /public, así
-            que el optimizador no aportaría nada. */}
-        <img src="/img/logo-dark.svg" alt="Grit" width={90} height={18} className="h-[18px] w-auto" />
+        {logo}
 
         <h1 className="m-0 mt-6 font-archivo text-[24px] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] lg:text-[28px]">
           {ADMIN.login.encabezado}

@@ -34,6 +34,14 @@ import {
 } from "@/lib/admin-formato";
 import { POR_PAGINA, type FiltrosPedidos } from "@/lib/admin-filtros";
 import type { Rango } from "@/lib/admin-rango";
+import {
+  COSTOS_POR_DEFECTO,
+  type AdSpendFila,
+  type AjusteDetalle,
+  type Costos,
+  type ItemDetalle,
+  type PedidoDetalle,
+} from "@/lib/admin-tipos";
 
 export type Resultado<T> = { ok: true; datos: T } | { ok: false };
 
@@ -113,6 +121,9 @@ export async function obtenerMetricas(rango: Rango): Promise<Resultado<Metricas>
       let q = supabase
         .from("ad_spend")
         .select("amount")
+        // Una inversión archivada es un borrado lógico: deja de contar en el
+        // CPA, en el ROAS y en la ganancia neta, igual que si no existiera.
+        .is("archived_at", null)
         .order("spend_date", { ascending: true })
         .range(lote * LOTE, lote * LOTE + LOTE - 1);
 
@@ -267,6 +278,7 @@ export type AbandonadoFila = {
   paso: string | null;
   estado: string;
   actualizado: string | null;
+  archivado: boolean;
 };
 
 export type ListadoAbandonados = {
@@ -276,11 +288,13 @@ export type ListadoAbandonados = {
 };
 
 /**
- * Checkouts abandonados, solo lectura.
+ * Checkouts abandonados.
  *
- * La tabla existe desde la fase 6A pero todavía no se escribe: la captura desde
- * el checkout llega más adelante. Hasta entonces el listado muestra su estado
- * vacío, y el día que empiece a llenarse no hay que tocar nada acá.
+ * Los escribe `POST /api/checkout-abandonado` desde el propio checkout público.
+ * Acá se leen con los mismos filtros que el listado de pedidos —búsqueda,
+ * archivo y página— más el estado propio de esta pestaña (abandonado o
+ * convertido). Todo se filtra en SQL: el navegador nunca recibe filas que no va
+ * a mostrar.
  */
 export async function obtenerAbandonados(
   filtros: FiltrosPedidos,
@@ -294,17 +308,29 @@ export async function obtenerAbandonados(
   const desde = (filtros.pagina - 1) * POR_PAGINA;
 
   try {
-    const { data, error, count } = await supabase
+    let q = supabase
       .from("abandoned_checkouts")
       .select(
         "id, customer_name, customer_whatsapp, customer_city, pack_id, pack_qty, " +
-          "has_extra, current_step, status, updated_at, last_seen_at",
+          "has_extra, current_step, status, updated_at, last_seen_at, archived_at",
         { count: "exact" },
       )
-      // Los archivados quedan fuera, igual que en pedidos.
-      .is("archived_at", null)
       .order("last_seen_at", { ascending: false })
       .range(desde, desde + POR_PAGINA - 1);
+
+    if (filtros.archivo === "activos") q = q.is("archived_at", null);
+    if (filtros.archivo === "archivados") q = q.not("archived_at", "is", null);
+    if (filtros.estado !== "todos") q = q.eq("status", filtros.estado);
+
+    if (filtros.busqueda.length > 0) {
+      // Ya viene saneado por `sanearBusqueda()`: sin la gramática del filtro.
+      const s = filtros.busqueda;
+      q = q.or(
+        `customer_name.ilike.*${s}*,customer_whatsapp.ilike.*${s}*,customer_city.ilike.*${s}*`,
+      );
+    }
+
+    const { data, error, count } = await q;
 
     if (error) return fallo("abandonados", error);
 
@@ -320,6 +346,7 @@ export async function obtenerAbandonados(
       status: string;
       updated_at: string | null;
       last_seen_at: string | null;
+      archived_at: string | null;
     };
 
     const filas: AbandonadoFila[] = ((data ?? []) as unknown as Cruda[]).map((f) => ({
@@ -335,6 +362,7 @@ export async function obtenerAbandonados(
       // `last_seen_at` es la última señal del visitante; `updated_at` solo
       // cambia cuando el servidor reescribe la fila.
       actualizado: f.last_seen_at ?? f.updated_at,
+      archivado: f.archived_at !== null,
     }));
 
     return { ok: true, datos: { filas, total: count ?? filas.length, pagina: filtros.pagina } };
@@ -349,65 +377,12 @@ export { METRICAS_VACIAS };
    Detalle de un pedido
    ------------------------------------------------------------ */
 
-export type ItemDetalle = {
-  id: string;
-  sku: string;
-  productName: string;
-  bundleId: string | null;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-  promocional: boolean;
-};
-
-export type AjusteDetalle = {
-  id: string;
-  descripcion: string | null;
-  revenue: number;
-  cost: number;
-  createdAt: string | null;
-  /** Nombre del administrador que lo cargó, o `null` si ya no está. */
-  responsable: string | null;
-};
-
-export type PedidoDetalle = {
-  id: string;
-  orderNumber: string;
-  source: string;
-  saleDate: string | null;
-  createdAt: string | null;
-
-  cliente: {
-    nombre: string;
-    whatsapp: string;
-    ciudad: string;
-    direccion: string;
-    ubicacion: string | null;
-  };
-
-  paymentMethod: string;
-  paymentStatus: string;
-  orderStatus: string;
-  shippingZone: string;
-  shippingCost: number;
-  clienteEnvioGratis: boolean;
-  vip: boolean;
-  vipCosto: number;
-
-  subtotal: number;
-  descuento: number;
-  total: number;
-  productCostTotal: number;
-  logisticsCost: number;
-  extraRevenueTotal: number;
-  extraCostTotal: number;
-
-  notasInternas: string | null;
-  archivadoEn: string | null;
-
-  items: ItemDetalle[];
-  ajustes: AjusteDetalle[];
-};
+/**
+ * Los tipos del detalle viven en `lib/admin-tipos.ts`: los necesita también el
+ * navegador, que no puede importar este módulo.
+ */
+export { COSTOS_POR_DEFECTO };
+export type { AdSpendFila, AjusteDetalle, Costos, ItemDetalle, PedidoDetalle };
 
 /**
  * Todo lo que necesita el sidebar de detalle, en una sola llamada.
@@ -602,5 +577,108 @@ export async function obtenerNumeroPedido(id: string): Promise<string> {
     return String((data as unknown as { order_number?: unknown }).order_number ?? "");
   } catch {
     return "";
+  }
+}
+
+/* ------------------------------------------------------------
+   Costos del negocio
+   ------------------------------------------------------------ */
+
+/**
+ * Los tres costos de `business_settings`.
+ *
+ * Son los únicos tres que el panel edita. No hay tipo de cambio, ni dólares, ni
+ * courier, ni Buzón Prime: la configuración del negocio son estos tres montos.
+ * Cambiarlos no reescribe ningún pedido ya creado.
+ */
+export async function obtenerCostos(): Promise<Resultado<Costos>> {
+  if (!hayConfiguracionSupabase()) {
+    console.error("[admin] configuración de Supabase incompleta");
+    return { ok: false };
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("business_settings")
+      .select(
+        "product_cost_per_bracelet, logistics_cost_asuncion, logistics_cost_interior, updated_at",
+      )
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) return fallo("costos", error);
+    if (!data) return { ok: true, datos: COSTOS_POR_DEFECTO };
+
+    const f = data as unknown as {
+      product_cost_per_bracelet: number | null;
+      logistics_cost_asuncion: number | null;
+      logistics_cost_interior: number | null;
+      updated_at: string | null;
+    };
+
+    return {
+      ok: true,
+      datos: {
+        producto: f.product_cost_per_bracelet ?? COSTOS_POR_DEFECTO.producto,
+        asuncion: f.logistics_cost_asuncion ?? COSTOS_POR_DEFECTO.asuncion,
+        interior: f.logistics_cost_interior ?? COSTOS_POR_DEFECTO.interior,
+        actualizado: f.updated_at,
+      },
+    };
+  } catch (e) {
+    return fallo("costos", e);
+  }
+}
+
+/* ------------------------------------------------------------
+   Ad Spend
+   ------------------------------------------------------------ */
+
+/** Cuántas inversiones se traen al panel. La lista scrollea dentro del modal. */
+export const MAX_AD_SPEND = 200;
+
+/**
+ * Inversiones publicitarias activas, de la más reciente a la más vieja.
+ *
+ * No se filtra por el rango del dashboard a propósito: el modal es donde se
+ * corrige y se completa el historial, así que tiene que mostrarlo entero. Las
+ * métricas, en cambio, sí respetan el rango activo — esa cuenta la hace
+ * `obtenerMetricas()`.
+ */
+export async function obtenerAdSpend(): Promise<Resultado<AdSpendFila[]>> {
+  if (!hayConfiguracionSupabase()) {
+    console.error("[admin] configuración de Supabase incompleta");
+    return { ok: false };
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("ad_spend")
+      .select("id, spend_date, amount, note")
+      .is("archived_at", null)
+      .order("spend_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(MAX_AD_SPEND);
+
+    if (error) return fallo("ad_spend", error);
+
+    const filas = ((data ?? []) as unknown as {
+      id: string;
+      spend_date: string;
+      amount: number | null;
+      note: string | null;
+    }[]).map((f) => ({
+      id: f.id,
+      // Solo la fecha, sin hora: es lo que devuelve PostgREST para un `date`
+      // y lo único que entiende un <input type="date">. El recorte también
+      // cubre el caso de que llegue con hora por cualquier motivo.
+      fecha: String(f.spend_date ?? "").slice(0, 10),
+      monto: f.amount ?? 0,
+      nota: f.note,
+    }));
+
+    return { ok: true, datos: filas };
+  } catch (e) {
+    return fallo("ad_spend", e);
   }
 }

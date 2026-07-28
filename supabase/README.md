@@ -23,9 +23,10 @@ Se aplican **en orden de nombre**, una sola vez cada una.
 |---|---|---|---|
 | 1 | `migrations/20260727_grit_ecommerce_foundation.sql` | Fundación del ecommerce: pedidos, ítems, historial de estados y links de pago | ✅ aplicada |
 | 2 | `migrations/20260728_grit_orders_transactional.sql` | `confirmation_token`, `idempotency_key` y la función `create_order` | ✅ aplicada |
-| 3 | `migrations/20260729_grit_admin_foundation.sql` | `admin_users` y `business_settings` | ⏳ pendiente de aplicar |
-| 4 | `migrations/20260730_grit_admin_orders_costs.sql` | Columnas de admin en `orders`, `efectivo`, `order_adjustments`, `ad_spend`, `abandoned_checkouts`, `changed_by` | ⏳ pendiente de aplicar |
-| 5 | `migrations/20260731_grit_create_order_costs.sql` | `create_order` con snapshot de costos (`p_units`) | ⏳ pendiente de aplicar |
+| 3 | `migrations/20260729_grit_admin_foundation.sql` | `admin_users` y `business_settings` | ✅ aplicada |
+| 4 | `migrations/20260730_grit_admin_orders_costs.sql` | Columnas de admin en `orders`, `efectivo`, `order_adjustments`, `ad_spend`, `abandoned_checkouts`, `changed_by` | ✅ aplicada |
+| 5 | `migrations/20260731_grit_create_order_costs.sql` | `create_order` con snapshot de costos (`p_units`) | ✅ aplicada |
+| 6 | `migrations/20260801_grit_admin_final.sql` | Borrado lógico de `ad_spend`, conversión y archivo de abandonados, y `create_manual_order` | ⏳ pendiente de aplicar |
 
 > **No vuelvas atrás.** La migración 5 borra la versión de `create_order` que
 > crea la 2 y la reemplaza por otra con un parámetro más. Volver a correr la 2
@@ -575,14 +576,70 @@ suplantar al administrador activo que **no** abre el panel.
 
 ---
 
+## Creación de pedidos manuales (`create_manual_order`, migración 6)
+
+El equivalente administrativo de `create_order`, para las ventas cerradas por
+WhatsApp, en persona o por Instagram.
+
+Hace exactamente lo mismo que el alta web —pedido, ítems e historial en UNA
+transacción, con el snapshot de costos leído de `business_settings`— y se
+diferencia en cuatro cosas:
+
+| | `create_order` | `create_manual_order` |
+|---|---|---|
+| `source` | `web` | `manual` |
+| `created_by` | queda en `null` | obligatorio, verificado contra `admin_users` |
+| `sale_date` | hoy en America/Asuncion | la elige quien carga el pedido |
+| `order_status` inicial | siempre `nuevo` | cualquiera de los válidos |
+
+`p_created_by` se verifica DENTRO de la función: tiene que existir en
+`admin_users` con `is_active = true`. Ni siquiera con la service role se puede
+atribuir un pedido manual a alguien que no es administrador activo.
+
+Es idempotente por `idempotency_key`, igual que el alta web: repetir la clave
+devuelve el pedido existente con `is_duplicate = true` y no toca su snapshot.
+
+Solo `service_role` puede ejecutarla.
+
+---
+
+## Borrado lógico de `ad_spend` (migración 6)
+
+`ad_spend` suma `archived_at` y `archived_by`. Eliminar una inversión desde el
+panel escribe `archived_at`: la fila queda en la base y deja de contar en el
+CPA, el ROAS, la ganancia neta y el margen neto. **No hay ningún camino en el
+código que borre una fila de `ad_spend` físicamente.**
+
+---
+
+## Checkouts abandonados
+
+`abandoned_checkouts` suma `converted_at` y `archived_by`, más dos constraints
+`NOT VALID` (aplican a lo nuevo, no revisan lo existente):
+
+- `current_step` solo puede ser `contacto`, `entrega`, `seleccion`, `pago` o
+  `review`.
+- Un checkout `converted` tiene que decir a qué pedido fue.
+
+Quién escribe qué:
+
+| Campo | Lo escribe |
+|---|---|
+| contacto, selección, zona, `current_step`, `last_seen_at` | `POST /api/checkout-abandonado`, desde el checkout público |
+| `status`, `converted_order_id`, `converted_at` | El servidor, al crear el pedido |
+| `archived_at`, `archived_by` | El panel |
+
+El endpoint público **nunca** lee `status`, `converted_order_id` ni
+`archived_at` del navegador, y responde 204 sin cuerpo: no devuelve datos de
+nadie, ni siquiera de quien lo llama.
+
+---
+
 ## Qué queda pendiente
 
 - Carga de los links reales en `payment_links` y redirección al pago externo
   para el método `tarjeta` (hoy va a `/gracias`, que muestra el pago online
   como pendiente).
-- Secciones del panel: dashboard, métricas, tabla de pedidos, detalle, pedido
-  manual, formularios de costos y de Ad Spend.
-- Captura de checkouts abandonados desde un endpoint server-side.
 - Trigger opcional que registre automáticamente en `order_status_history` cada
   cambio de `order_status` o `payment_status`.
 - Tablas de la aplicación NFC, en su propia migración.

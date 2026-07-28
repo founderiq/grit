@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import Header, { type NavLink } from "@/components/Header";
+import Logo from "@/components/Logo";
 import CartButton from "@/components/cart/CartButton";
 import CartRoot from "@/components/cart/CartRoot";
 import CheckoutClient from "@/components/checkout/CheckoutClient";
@@ -68,13 +68,7 @@ export default function CheckoutPage() {
       <footer className="grit-on-light border-t border-borde-claro bg-hueso">
         <div className="mx-auto flex max-w-contenido flex-wrap items-center justify-between gap-4 px-5 py-7 lg:px-10">
           <Link href="/" aria-label="Grit — inicio" className="flex min-h-11 items-center">
-            <Image
-              src="/img/logo-dark.svg"
-              alt="Grit"
-              width={90}
-              height={18}
-              className="h-4 w-auto lg:h-[18px]"
-            />
+            <Logo variante="checkout" sobre="claro" />
           </Link>
 
           <p className="m-0 font-mono text-[9px] uppercase tracking-[0.1em] text-gris-oscuro lg:text-[9.5px]">

@@ -167,6 +167,20 @@ export default function OrderSummary({
           >
             {enviando ? CHECKOUT.resumen.ctaEnviando : CHECKOUT.resumen.cta}
           </button>
+
+          {/* Aparece en el mismo frame del clic, antes de que el servidor
+              conteste: sin esto, en una conexión lenta parece que no pasó
+              nada. `role="status"` lo anuncia sin interrumpir. */}
+          {enviando && (
+            <div role="status" className="mt-3">
+              <p className="m-0 text-[12.5px] font-semibold leading-[1.5] text-tinta">
+                {CHECKOUT.resumen.confirmando}
+              </p>
+              <p className="m-0 mt-[3px] text-[11.5px] leading-[1.45] text-gris-oscuro">
+                {CHECKOUT.resumen.confirmandoDetalle}
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>

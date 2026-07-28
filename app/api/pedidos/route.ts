@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import {
   ConfiguracionFaltanteError,
   getSupabaseAdmin,
 } from "@/lib/supabase-admin";
-import { validarYCalcular } from "@/lib/pedidos";
+import { esUuid, validarYCalcular } from "@/lib/pedidos";
 import { notificarPedidoNuevo } from "@/lib/telegram";
 
 /**
@@ -21,6 +21,22 @@ import { notificarPedidoNuevo } from "@/lib/telegram";
  *
  *   Nunca se devuelven al navegador: el UUID interno del pedido, mensajes de
  *   error de Supabase, ni nada de la configuración del servidor.
+ *
+ * QUÉ ESPERA LA RESPUESTA, Y QUÉ NO
+ *   Espera UNA sola cosa: que Supabase confirme el pedido. Nunca se redirige a
+ *   /gracias antes de eso.
+ *
+ *   El aviso por Telegram y la conversión del checkout abandonado se ejecutan
+ *   con `after()`, o sea DESPUÉS de que la respuesta salió. Los dos son efectos
+ *   secundarios: si Telegram tarda cinco segundos o se cae, el comprador no
+ *   tiene por qué esperarlo ni enterarse. Antes se esperaban dentro del
+ *   request, y eso ponía hasta cinco segundos de Telegram en el camino crítico
+ *   entre "Confirmar pedido" y /gracias.
+ *
+ * MEDICIÓN
+ *   Cada tramo se cronometra y se registra en una sola línea de log. No es
+ *   decorativo: es la única forma de saber, sobre tráfico real, cuál de los
+ *   tramos se degrada. No incluye ningún dato del cliente.
  */
 
 // Toca la base en cada request: no se cachea ni se prerenderiza.
@@ -42,7 +58,27 @@ const json = (cuerpo: unknown, status: number) =>
     headers: { "Cache-Control": "no-store" },
   });
 
+/** Cronómetro por tramos. Devuelve milisegundos redondeados. */
+function cronometro() {
+  const inicio = performance.now();
+  let previo = inicio;
+  const tramos: Record<string, number> = {};
+
+  return {
+    marcar(nombre: string) {
+      const ahora = performance.now();
+      tramos[nombre] = Math.round(ahora - previo);
+      previo = ahora;
+    },
+    resumen(extra: Record<string, unknown> = {}) {
+      return { ...tramos, total_ms: Math.round(performance.now() - inicio), ...extra };
+    },
+  };
+}
+
 export async function POST(request: Request) {
+  const reloj = cronometro();
+
   /* 1 · Cuerpo JSON --------------------------------------------------------- */
   let bruto: unknown;
   try {
@@ -50,6 +86,7 @@ export async function POST(request: Request) {
   } catch {
     return json({ error: "payload_invalido" }, 400);
   }
+  reloj.marcar("cuerpo_ms");
 
   /* 2 · Validación y recálculo server-side ---------------------------------- */
   const resultado = validarYCalcular(bruto);
@@ -57,6 +94,16 @@ export async function POST(request: Request) {
     return json({ error: "payload_invalido", detalles: resultado.errores }, 400);
   }
   const p = resultado.pedido;
+
+  // Clave del checkout abandonado. Es opcional y no participa de la validación
+  // del pedido: si no viene o no es un UUID, simplemente no se convierte nada.
+  const sessionKey =
+    typeof bruto === "object" && bruto !== null && "sessionKey" in bruto
+      ? (bruto as { sessionKey?: unknown }).sessionKey
+      : null;
+  const claveAbandono = esUuid(sessionKey) ? sessionKey : null;
+
+  reloj.marcar("validacion_ms");
 
   /* 3 · Cliente de Supabase ------------------------------------------------- */
   let supabase;
@@ -70,6 +117,7 @@ export async function POST(request: Request) {
     }
     throw e;
   }
+  reloj.marcar("cliente_ms");
 
   /* 4 · Alta transaccional -------------------------------------------------- */
   const { data, error } = await supabase
@@ -102,56 +150,95 @@ export async function POST(request: Request) {
     })
     .single<FilaCreateOrder>();
 
+  reloj.marcar("create_order_ms");
+
   if (error || !data) {
     // Se registra solo lo mínimo: sin dirección, sin teléfono, sin payload.
     console.error("[pedidos] fallo al crear el pedido", {
       codigo: error?.code ?? "sin_datos",
+      ...reloj.resumen(),
     });
     return json({ error: "error_interno" }, 500);
   }
 
-  /* 5 · Aviso por Telegram --------------------------------------------------
-     Solo cuando el pedido es NUEVO. Si `is_duplicate` viene en true, el
-     pedido ya existía —doble clic, reintento o corte de red— y el grupo ya
-     recibió su aviso: no se vuelve a notificar.
+  /* 5 · Efectos posteriores, fuera del camino crítico -----------------------
+     `after()` corre el callback cuando la respuesta ya salió. El comprador
+     llega a /gracias sin esperar ni el aviso de Telegram ni la conversión del
+     checkout abandonado, y ninguno de los dos puede hacer fallar el pedido:
+     el pedido ya está confirmado en la base cuando esto empieza.            */
+  after(async () => {
+    const posterior = cronometro();
 
-     Va fuera de la transacción de base de datos y a propósito no afecta el
-     resultado: si Telegram está caído, el pedido igual está guardado y el
-     comprador igual recibe su confirmación. El fallo queda en el log del
-     servidor y nada más. Se espera la respuesta (con timeout corto) porque en
-     serverless el trabajo posterior a la respuesta no está garantizado.      */
-  if (!data.is_duplicate) {
-    await notificarPedidoNuevo({
-      orderNumber: data.order_number,
-      cliente: {
-        nombre: p.contacto.nombre,
-        whatsapp: p.contacto.telefono,
-        ciudad: p.contacto.ciudad,
-        direccion: p.contacto.direccion,
-        ubicacion: p.contacto.ubicacion || null,
-      },
-      items: p.items.map((i) => ({
-        product_name: i.product_name,
-        quantity: i.quantity,
-        line_total: i.line_total,
-      })),
-      subtotal: p.subtotal,
-      envio: p.envio,
-      envioGratis: p.envioGratis,
-      vip: p.vip,
-      vipCosto: p.vipCosto,
-      total: p.total,
-      zona: p.zona,
-      metodoPago: p.metodoPago,
-      paymentStatus: p.paymentStatus,
-    });
-  }
+    /* 5a · Checkout abandonado → convertido.
+       Es idempotente por partida doble: `status <> 'converted'` hace que un
+       reintento no vuelva a escribir, y como corre después de la respuesta,
+       la lentitud de /gracias no lo afecta. Un fallo acá no toca al pedido. */
+    if (claveAbandono) {
+      try {
+        const { error: falla } = await supabase
+          .from("abandoned_checkouts")
+          .update({
+            status: "converted",
+            converted_order_id: data.id,
+            converted_at: new Date().toISOString(),
+          })
+          .eq("session_key", claveAbandono)
+          .neq("status", "converted");
+
+        if (falla) {
+          console.error("[pedidos] no se pudo convertir el abandonado", {
+            codigo: falla.code,
+          });
+        }
+      } catch (e) {
+        console.error("[pedidos] error al convertir el abandonado", {
+          tipo: e instanceof Error ? e.name : "desconocido",
+        });
+      }
+    }
+    posterior.marcar("abandonado_ms");
+
+    /* 5b · Aviso por Telegram.
+       Solo cuando el pedido es NUEVO: si `is_duplicate` viene en true, el
+       pedido ya existía —doble clic, reintento o corte de red— y el grupo ya
+       recibió su aviso. Es el ÚNICO Telegram del sistema: los pedidos
+       manuales y los cambios de estado del panel no notifican nada.        */
+    if (!data.is_duplicate) {
+      await notificarPedidoNuevo({
+        orderNumber: data.order_number,
+        cliente: {
+          nombre: p.contacto.nombre,
+          whatsapp: p.contacto.telefono,
+          ciudad: p.contacto.ciudad,
+          direccion: p.contacto.direccion,
+          ubicacion: p.contacto.ubicacion || null,
+        },
+        items: p.items.map((i) => ({
+          product_name: i.product_name,
+          quantity: i.quantity,
+          line_total: i.line_total,
+        })),
+        subtotal: p.subtotal,
+        envio: p.envio,
+        envioGratis: p.envioGratis,
+        vip: p.vip,
+        vipCosto: p.vipCosto,
+        total: p.total,
+        zona: p.zona,
+        metodoPago: p.metodoPago,
+        paymentStatus: p.paymentStatus,
+      });
+    }
+    posterior.marcar("telegram_ms");
+
+    console.info("[pedidos] posterior", posterior.resumen({ pedido: data.order_number }));
+  });
 
   /* 6 · Respuesta ----------------------------------------------------------
      No se expone `data.id`: el UUID interno del pedido se queda en el
      servidor. Hacia afuera viaja `confirmation_token`, que es el que abre
-     /gracias. El resultado de Telegram no cambia nada de esta respuesta.   */
-  return json(
+     /gracias.                                                              */
+  const cuerpo = json(
     {
       orderNumber: data.order_number,
       confirmationToken: data.confirmation_token,
@@ -164,4 +251,9 @@ export async function POST(request: Request) {
     // así que 200 en lugar de 201.
     data.is_duplicate ? 200 : 201,
   );
+
+  reloj.marcar("respuesta_ms");
+  console.info("[pedidos] alta", reloj.resumen({ duplicado: data.is_duplicate }));
+
+  return cuerpo;
 }

@@ -51,6 +51,11 @@ Asunción caería en el día siguiente. `sale_date` ya está en `America/Asuncio
 El Ad Spend se agrupa por su propio `spend_date`, que también es una fecha del
 negocio.
 
+**Solo cuentan las inversiones activas.** Eliminar una inversión desde el panel
+es un borrado lógico: escribe `ad_spend.archived_at` y la fila deja de sumar,
+exactamente como si no existiera. Todas las consultas de métricas filtran
+`archived_at is null`.
+
 ---
 
 ## 2. Fórmulas
@@ -236,6 +241,23 @@ de los dos montos supera cero.
 | `lib/admin-datos.ts` | Las consultas a Supabase. **Solo servidor** (`server-only`), con la service role |
 | `lib/admin-formato.ts` | Guaraníes, porcentajes, múltiplos y la normalización de estados |
 | `lib/admin-filtros.ts` | Lee y valida los filtros del listado desde la URL |
+| `lib/admin-pedido-manual.ts` | Recalcula el pedido manual desde el catálogo. Los importes que entran a las métricas salen de acá, no del formulario |
+| `app/admin/acciones-panel.ts` | Las escrituras de pedido manual, costos, Ad Spend y archivo de abandonados |
+
+### Pedidos manuales y métricas
+
+Un pedido manual entra en las métricas con **las mismas reglas que uno web**: no
+tiene ningún trato especial. Como el criterio de validez exige
+`payment_status = 'pagado'`, un pedido manual cargado como *Pendiente* o
+*Cancelado* no suma ingreso ni ganancia; cuando se lo marca *Pagado* desde el
+detalle, empieza a contar.
+
+`source` solo se usa para separar «pedidos web» de «pedidos manuales» en el
+resumen. Los dos contadores cuentan **únicamente pedidos válidos**, así que su
+suma es el total de pedidos confirmados y no el total de filas de la tabla.
+
+Sus costos son un snapshot igual de inmutable: `create_manual_order` los lee de
+`business_settings` al crear el pedido y no se recalculan nunca.
 
 Las consultas traen únicamente las columnas necesarias de los pedidos **no
 archivados** del rango y agregan en JavaScript. Se prefirió esto a una función

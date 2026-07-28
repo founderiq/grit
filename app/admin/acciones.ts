@@ -10,10 +10,9 @@
  *
  * CADA acción, sin excepción, hace lo mismo antes de tocar nada:
  *
- *   1. `obtenerEstadoAdmin()` — valida la sesión contra Supabase Auth y exige
- *      una fila ACTIVA en `admin_users`. Un usuario dado de baja entre que
- *      abrió el panel y apretó guardar deja de poder escribir en ese mismo
- *      request.
+ *   1. `autorizarAdmin()` — valida la sesión contra Supabase Auth y exige una
+ *      fila ACTIVA en `admin_users`. Un usuario dado de baja entre que abrió el
+ *      panel y apretó guardar deja de poder escribir en ese mismo request.
  *   2. Valida que el id del pedido sea un UUID.
  *   3. LEE el estado real del pedido en la base.
  *   4. Valida el valor pedido contra la lista de valores permitidos.
@@ -28,8 +27,8 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { obtenerEstadoAdmin } from "@/lib/admin-auth";
-import { getSupabaseAdmin, hayConfiguracionSupabase } from "@/lib/supabase-admin";
+import { autorizarAdmin } from "@/lib/admin-guardia";
+import type { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { esUuid } from "@/lib/pedidos";
 import {
   esEntregaVisible,
@@ -89,21 +88,19 @@ type Preparado =
     };
 
 async function preparar(pedidoId: unknown): Promise<Preparado> {
-  if (!hayConfiguracionSupabase()) {
-    console.error("[admin] configuración de Supabase incompleta");
-    return { ok: false, fallo: error("error_interno") };
-  }
-
-  const acceso = await obtenerEstadoAdmin();
-  if (acceso.estado !== "autorizado") {
-    return { ok: false, fallo: error("no_autorizado") };
+  const guardia = await autorizarAdmin();
+  if (!guardia.ok) {
+    return {
+      ok: false,
+      fallo: error(guardia.motivo === "no_autorizado" ? "no_autorizado" : "error_interno"),
+    };
   }
 
   if (!esUuid(pedidoId)) {
     return { ok: false, fallo: error("pedido_invalido") };
   }
 
-  const supabase = getSupabaseAdmin();
+  const { adminId, supabase } = guardia;
   const { data, error: fallaLectura } = await supabase
     .from("orders")
     .select("id, payment_status, order_status, payment_method, internal_notes, archived_at")
@@ -116,12 +113,7 @@ async function preparar(pedidoId: unknown): Promise<Preparado> {
   }
   if (!data) return { ok: false, fallo: error("pedido_invalido") };
 
-  return {
-    ok: true,
-    adminId: acceso.userId,
-    supabase,
-    pedido: data as unknown as PedidoActual,
-  };
+  return { ok: true, adminId, supabase, pedido: data as unknown as PedidoActual };
 }
 
 /** Una entrada en la bitácora. Nunca hace fallar la operación principal. */

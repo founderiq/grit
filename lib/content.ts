@@ -654,6 +654,8 @@ export const CHECKOUT = {
     itemMeta: "Colección Fe · Talle único",
     cta: "Confirmar pedido",
     ctaEnviando: "Confirmando…",
+    confirmando: "Confirmando tu pedido…",
+    confirmandoDetalle: "No cierres esta página. Te llevamos a la confirmación en unos segundos.",
   },
 
   footerLegal: "© 2026 GRIT · Todos los derechos reservados",

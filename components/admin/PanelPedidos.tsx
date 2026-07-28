@@ -24,13 +24,10 @@ export default async function PanelPedidos({
   rango,
   filtros,
   params,
-  abierto,
 }: {
   rango: Rango;
   filtros: FiltrosPedidos;
   params: Record<string, string>;
-  /** Pedido cuyo detalle está abierto, para resaltar su fila. */
-  abierto?: string;
 }) {
   const res = await obtenerPedidos(rango, filtros);
 
@@ -80,8 +77,6 @@ export default async function PanelPedidos({
               <Fila
                 key={f.id}
                 pedido={f}
-                params={params}
-                abierta={f.id === abierto}
                 mostrarArchivado={filtros.archivo !== "activos"}
               />
             ))}
@@ -96,22 +91,18 @@ export default async function PanelPedidos({
 
 function Fila({
   pedido,
-  params,
-  abierta,
   mostrarArchivado,
 }: {
   pedido: PedidoFila;
-  params: Record<string, string>;
-  abierta: boolean;
   mostrarArchivado: boolean;
 }) {
   const celda =
     "px-4 py-[13px] align-middle text-[13px] text-tinta first:pl-5 last:pr-5 lg:first:pl-6 lg:last:pr-6";
 
   return (
-    <FilaPedido pedidoId={pedido.id} params={params} seleccionada={abierta}>
+    <FilaPedido pedidoId={pedido.id} numero={pedido.orderNumber}>
       <td className={`${celda} whitespace-nowrap`}>
-        <BotonDetalle pedidoId={pedido.id} numero={pedido.orderNumber} params={params} />
+        <BotonDetalle pedidoId={pedido.id} numero={pedido.orderNumber} />
         {mostrarArchivado && pedido.archivado && (
           <span className="ml-2 align-middle">
             <PildoraArchivado />

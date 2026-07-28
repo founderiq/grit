@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Logo from "@/components/Logo";
 
 /**
  * Header sticky, compartido por la landing y las rutas de ecommerce.
@@ -58,14 +58,7 @@ export default function Header({
             aria-label="Grit — inicio"
             className="flex min-h-11 items-center"
           >
-            <Image
-              src="/img/logo-dark.svg"
-              alt="Grit"
-              width={114}
-              height={24}
-              priority
-              className="h-5 w-auto lg:h-6"
-            />
+            <Logo variante="header" sobre="claro" prioridad />
           </Link>
 
           <nav className="flex items-center gap-4 lg:gap-8">
@@ -108,14 +101,7 @@ export default function Header({
     >
       <div className="mx-auto flex max-w-contenido items-center justify-between px-[22px] py-4 md:px-10">
         <Link href="/" aria-label="Grit — inicio" className="flex items-center">
-          <Image
-            src="/img/logo-light.svg"
-            alt="Grit"
-            width={90}
-            height={19}
-            priority
-            className="h-[19px] w-auto"
-          />
+          <Logo variante="header" sobre="oscuro" prioridad />
         </Link>
 
         <nav className="flex items-center gap-8">

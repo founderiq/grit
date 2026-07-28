@@ -21,6 +21,12 @@ import {
   type PedidoBase,
 } from "@/lib/checkout";
 import { CHECKOUT, type ZonaId } from "@/lib/content";
+import {
+  claveSesionCheckout,
+  olvidarSesionCheckout,
+  useAbandono,
+} from "@/components/checkout/useAbandono";
+import type { Paso } from "@/lib/checkout-abandonado";
 import CheckoutForm from "./CheckoutForm";
 import ShippingOptions from "./ShippingOptions";
 import PaymentMethods from "./PaymentMethods";
@@ -30,6 +36,8 @@ import OrderSummary from "./OrderSummary";
 const MENSAJES_ERROR: Record<string, string> = {
   sin_conexion:
     "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
+  tiempo_agotado:
+    "Está tardando más de lo normal. Probá de nuevo: si tu pedido ya se registró, no se va a duplicar.",
   payload_invalido:
     "Revisá los datos del formulario: hay algo que no pudimos validar.",
   configuracion_incompleta:
@@ -83,6 +91,9 @@ export default function CheckoutClient() {
   const [metodo, setMetodo] = useState<MetodoPago>("transferencia");
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+  // Se toca al elegir método de pago y al apretar confirmar, para saber hasta
+  // dónde llegó alguien que después se fue.
+  const [paso, setPaso] = useState<Paso>("contacto");
 
   const refs: Record<CampoId, React.RefObject<HTMLInputElement | null>> = {
     nombre: useRef<HTMLInputElement>(null),
@@ -93,6 +104,24 @@ export default function CheckoutClient() {
   };
 
   const totales = totalesCheckout(pedido, zona, vip);
+
+  /* --------------------------------------------------------------------
+     Checkout abandonado
+
+     Se registra a quien dejó su nombre y su WhatsApp y todavía no confirmó.
+     No manda nada antes de eso, y el pedido no depende en absoluto de que
+     esta captura funcione. Ver components/checkout/useAbandono.ts.
+     -------------------------------------------------------------------- */
+  useAbandono({
+    nombre: campos.nombre,
+    whatsapp: campos.telefono,
+    ciudad: campos.ciudad,
+    packId: pedido.packId,
+    packQty: pedido.qty,
+    extra: pedido.extra,
+    zona,
+    paso,
+  });
 
   /* --------------------------------------------------------------------
      Clave de idempotencia
@@ -117,6 +146,14 @@ export default function CheckoutClient() {
     return claveRef.current.clave;
   };
 
+  /** El paso solo avanza: volver a tocar un campo anterior no lo retrocede. */
+  const avanzarPaso = (siguiente: Paso) => {
+    const orden: Paso[] = ["contacto", "seleccion", "entrega", "pago", "review"];
+    setPaso((actual) =>
+      orden.indexOf(siguiente) > orden.indexOf(actual) ? siguiente : actual,
+    );
+  };
+
   const onCampo = (id: CampoId, valor: string) => {
     const siguientes = { ...campos, [id]: valor };
     setCampos(siguientes);
@@ -135,6 +172,7 @@ export default function CheckoutClient() {
     if (enviando) return; // corta el doble submit
     setIntentado(true);
     setErrorEnvio(null);
+    avanzarPaso("review");
 
     const nuevos = validarContacto(campos);
     setErrores(nuevos);
@@ -149,6 +187,9 @@ export default function CheckoutClient() {
 
     const resultado = await submitOrder({
       idempotencyKey: obtenerClave(),
+      // Para que el servidor pueda marcar el checkout abandonado como
+      // convertido. Si no existe, el pedido se crea igual.
+      sessionKey: claveSesionCheckout(),
       packId: pedido.packId,
       qty: pedido.qty,
       extra: pedido.extra,
@@ -169,8 +210,12 @@ export default function CheckoutClient() {
       return;
     }
 
-    // El pedido existe. Recién ahora se marca el carrito para limpieza; lo
-    // borra /gracias al cargar. Ver components/gracias/LimpiarCarrito.tsx.
+    // El pedido existe. Esta sesión de checkout terminó: la clave se olvida
+    // para que la próxima visita no reescriba una fila ya convertida.
+    olvidarSesionCheckout();
+
+    // Recién ahora se marca el carrito para limpieza; lo borra /gracias al
+    // cargar. Ver components/gracias/LimpiarCarrito.tsx.
     try {
       window.localStorage.setItem(
         MARCA_LIMPIEZA,
@@ -209,13 +254,25 @@ export default function CheckoutClient() {
 
           <ShippingOptions
             zona={zona}
-            onZona={setZona}
+            onZona={(z) => {
+              avanzarPaso("entrega");
+              setZona(z);
+            }}
             vip={vip}
-            onVip={setVip}
+            onVip={(v) => {
+              avanzarPaso("entrega");
+              setVip(v);
+            }}
             envioGratis={totales.envioGratis}
           />
 
-          <PaymentMethods metodo={metodo} onMetodo={setMetodo} />
+          <PaymentMethods
+            metodo={metodo}
+            onMetodo={(m) => {
+              avanzarPaso("pago");
+              setMetodo(m);
+            }}
+          />
         </div>
 
         <OrderSummary

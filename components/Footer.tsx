@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Logo from "@/components/Logo";
 import { LINKS } from "@/lib/content";
 
 /**
@@ -23,13 +23,7 @@ export default function Footer({ variant = "landing" }: FooterProps) {
       }`}
     >
       <div className="mx-auto max-w-contenido px-[26px] pb-[38px] pt-[46px] md:px-10">
-        <Image
-          src="/img/logo-light.svg"
-          alt="Grit"
-          width={124}
-          height={26}
-          className="mb-5 h-[26px] w-auto"
-        />
+        <Logo variante="footer" sobre="oscuro" className="mb-5" />
 
         <div className="font-mono text-[11px] uppercase leading-[2] tracking-[0.16em] text-gris-medio">
           <span className="text-tierra">Fe que se usa.</span>

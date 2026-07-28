@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { agregarAjuste } from "@/app/admin/acciones";
 import { ADMIN } from "@/lib/admin-content";
 import Aviso from "@/components/admin/Aviso";
@@ -16,9 +15,15 @@ import Aviso from "@/components/admin/Aviso";
  * Contra el doble envío: el botón se deshabilita mientras guarda y el servidor,
  * además, descarta un alta idéntica repetida dentro de los quince segundos.
  */
-export default function FormularioAjuste({ pedidoId }: { pedidoId: string }) {
+export default function FormularioAjuste({
+  pedidoId,
+  onGuardado,
+}: {
+  pedidoId: string;
+  /** Vuelve a pedir el detalle y refresca métricas y listado. */
+  onGuardado: () => void;
+}) {
   const id = useId();
-  const router = useRouter();
   const [pendiente, iniciar] = useTransition();
 
   const [revenue, setRevenue] = useState("");
@@ -40,7 +45,7 @@ export default function FormularioAjuste({ pedidoId }: { pedidoId: string }) {
         setRevenue("");
         setCost("");
         setDescripcion("");
-        router.refresh();
+        onGuardado();
       }
     });
   };

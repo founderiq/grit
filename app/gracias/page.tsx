@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import Logo from "@/components/Logo";
 import LimpiarCarrito from "@/components/gracias/LimpiarCarrito";
 import { IconCheckCircle, IconShield } from "@/components/ui/ProductoIcons";
 import { getSupabaseAdmin, hayConfiguracionSupabase } from "@/lib/supabase-admin";
@@ -72,14 +72,7 @@ function Cabecera() {
     <header className="grit-on-light border-b border-borde-claro bg-hueso">
       <div className="mx-auto flex max-w-contenido items-center justify-between px-5 py-4 lg:px-10">
         <Link href="/" aria-label="Grit — inicio" className="flex min-h-11 items-center">
-          <Image
-            src="/img/logo-dark.svg"
-            alt="Grit"
-            width={114}
-            height={24}
-            priority
-            className="h-5 w-auto lg:h-6"
-          />
+          <Logo variante="header" sobre="claro" prioridad />
         </Link>
         <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-gris-oscuro lg:text-[9.5px]">
           <IconShield width={13} aria-hidden="true" />
