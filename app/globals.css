@@ -1,3 +1,8 @@
+/* Tokens del Design System. Va arriba de las directivas para que las custom
+   properties estén disponibles en las reglas @layer y en valores arbitrarios
+   del tipo text-[var(--fg)]. */
+@import "./grit-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,6 +26,20 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Foco visible solo por teclado — nunca con click de mouse.
+     El sistema es plano: outline, no box-shadow ni ring de Tailwind.
+     El color sale de --focus-ring-color, que los scopes .grit-on-dark /
+     .grit-on-light ajustan por superficie (specs/11 · corrección #4). */
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--text-on-dark);
+  }
+
   /* Respeta la preferencia de reducir movimiento */
   @media (prefers-reduced-motion: reduce) {
     html {
@@ -36,7 +55,10 @@
 }
 
 @layer components {
-  /* Etiqueta superior de sección: punto + nombre en monospace */
+  /* Etiqueta superior de sección: punto + nombre en monospace.
+     Color por defecto = superficie oscura (5.15:1 sobre tinta). Sobre
+     superficie clara, <SectionLabel /> lo sube a gris-oscuro con una utilidad
+     — que gana por estar en @layer utilities (corrección #1/#2 de specs/11). */
   .grit-label {
     @apply flex items-center gap-[9px] font-mono text-[11px] uppercase tracking-[0.2em] text-gris-medio;
   }
@@ -49,5 +71,62 @@
   /* Botón claro (hueso sobre oscuro) */
   .btn-hueso {
     @apply inline-flex items-center justify-center rounded-full bg-hueso px-[26px] py-[15px] font-archivo text-[15px] font-bold text-tinta transition-colors duration-200 hover:bg-[#e2dccf];
+  }
+
+  /* ------------------------------------------------------------------
+     CTAs de ecommerce (Product Experience handoff §05).
+     Ambas son w-full con border-box, así un CTA nunca puede exceder su
+     columna, tarjeta o el padding del drawer.
+     El foco lo aporta la regla global :focus-visible — sin `ring-*`, que
+     en Tailwind compila a box-shadow y rompería la regla de sistema plano.
+     ------------------------------------------------------------------ */
+
+  /* CTA primario naranja — Comprar ahora / Finalizar compra / Confirmar pedido */
+  .btn-naranja {
+    @apply flex w-full items-center justify-center rounded-pill bg-naranja px-[26px] py-[17px] font-archivo text-[16px] font-bold leading-none text-tinta transition-colors duration-control ease-grit hover:bg-naranja-oscura;
+  }
+
+  /* CTA secundario delineado — Agregar al carrito.
+     Corrección de contraste aprobada: el borde conserva el tierra #C2693F del
+     handoff (3.37:1 en reposo / 3.03:1 en hover, sobre el umbral de 3:1 para
+     UI) y el texto pasa a tierra-oscura #7A3B2B, que da 7.29:1 en reposo y
+     6.56:1 sobre el hover — AA en ambos estados. */
+  .btn-naranja-outline {
+    @apply flex w-full items-center justify-center rounded-pill border-heavy border-tierra bg-transparent px-[26px] py-[17px] font-archivo text-[16px] font-bold leading-none text-tierra-oscura transition-colors duration-control ease-grit hover:bg-tierra/10;
+  }
+
+  @media (max-width: 420px) {
+    .btn-naranja,
+    .btn-naranja-outline {
+      @apply px-[22px] py-[15px] text-[15px];
+    }
+  }
+
+  /* Punto pulsante del badge de entrega. Es la única animación de la página.
+     La regla global de prefers-reduced-motion la neutraliza. */
+  .grit-pulso {
+    animation: grit-pulso 2s infinite;
+  }
+}
+
+/* Entrada del cart drawer: desliza desde la derecha, sin rebote.
+   Se aplica con `motion-safe:`, así que bajo prefers-reduced-motion el panel
+   aparece directo. */
+@keyframes grit-drawer {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes grit-pulso {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(74, 124, 89, 0);
   }
 }

@@ -1,10 +1,10 @@
+import Image from "next/image";
 import SectionLabel from "./ui/SectionLabel";
-import FechaHoy from "./ui/FechaHoy";
-import { CONTENIDO_EJEMPLO, CONTENIDO_TIPOS } from "@/lib/content";
+import { CONTENIDO_TIPOS } from "@/lib/content";
 
 /**
  * El contenido — fondo tinta. Explica qué se ve exactamente al tocar la
- * pulsera: un mockup de pantalla con el mensaje del día + los tres tipos
+ * pulsera: una foto real de la pantalla de Grit en uso, más los tres tipos
  * de contenido que rotan. Responde a la pregunta que "El ritual" deja
  * abierta ("accedés a una verdad") con un ejemplo concreto.
  */
@@ -43,30 +43,18 @@ export default function Contenido() {
           </div>
         </div>
 
-        {/* Mockup de pantalla */}
+        {/* Foto de la pantalla en uso: el mensaje del día en la mano de
+            quien lo recibe. El aspect-ratio queda a un 0,03% del original
+            (1122×1402), así object-cover prácticamente no recorta nada. */}
         <div className="mt-12 lg:mt-0">
-          <div className="mx-auto w-full max-w-[340px] rounded-[26px] border border-borde bg-tinta-2 p-7">
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-tierra">
-                {CONTENIDO_EJEMPLO.etiqueta}
-              </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-gris-claro">
-                <FechaHoy />
-              </span>
-            </div>
-
-            <p className="m-0 mt-7 font-archivo text-[21px] font-bold leading-[1.32] tracking-[-0.01em] text-hueso">
-              {CONTENIDO_EJEMPLO.texto}
-            </p>
-            <p className="m-0 mt-3 font-mono text-[11px] uppercase tracking-[0.1em] text-tierra">
-              — {CONTENIDO_EJEMPLO.referencia}
-            </p>
-
-            <div className="mt-7 border-t border-borde pt-5">
-              <p className="m-0 text-[13.5px] italic leading-[1.6] text-gris-copy">
-                {CONTENIDO_EJEMPLO.accion}
-              </p>
-            </div>
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-[360px] overflow-hidden rounded-[26px]">
+            <Image
+              src="/img/grit-app-phone-hand.jpg"
+              alt="Una mano sostiene un teléfono con la pantalla de inicio de Grit abierta, mostrando el versículo del día."
+              fill
+              sizes="(max-width: 1024px) 85vw, 360px"
+              className="object-cover object-top"
+            />
           </div>
 
           <p className="mt-6 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-gris-claro">

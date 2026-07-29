@@ -1,4 +1,4 @@
-import { FAQS } from "@/lib/content";
+import { FAQS, PRODUCTO_RATING } from "@/lib/content";
 
 /** URL canónica del sitio (usada en metadata y structured data). */
 export const SITE_URL = "https://grit.com.py";
@@ -24,19 +24,28 @@ export const organizationSchema = {
 export const productSchema = {
   "@context": "https://schema.org",
   "@type": "Product",
-  name: "Pulsera Grit · Colección Fe",
+  name: "Pulsera NFC Grit · Colección Fe",
   image: [`${SITE_URL}/img/producto.jpg`],
   description:
     "Pulsera de tejido elástico premium con cruz bordada y toque a contenido (NFC). Un recordatorio diario de fe, disciplina y propósito.",
   brand: { "@type": "Brand", name: "Grit" },
   category: "Accesorios / Identidad",
   material: "Tejido elástico premium",
+  // Rango de precios de los tres bundles aprobados (115.000 – 269.000 Gs).
   offers: {
-    "@type": "Offer",
+    "@type": "AggregateOffer",
     availability: "https://schema.org/InStock",
-    price: "85000",
+    lowPrice: "115000",
+    highPrice: "269000",
+    offerCount: 3,
     priceCurrency: "PYG",
     url: `${SITE_URL}/producto`,
+  },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: PRODUCTO_RATING.promedio,
+    reviewCount: PRODUCTO_RATING.total,
+    bestRating: 5,
   },
 };
 

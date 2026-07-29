@@ -20,7 +20,7 @@ export default function CTAFinal() {
         </div>
 
         <p className="mx-auto mt-[26px] max-w-[330px] text-[16px] leading-[1.6] text-gris-copy">
-          85.000 Gs. Envíos a todo el país. No te quedes sin la tuya.
+          115.000 Gs. Envíos a todo el país. No te quedes sin la tuya.
         </p>
 
         <div className="mx-auto mt-9 flex max-w-[320px] flex-col gap-[13px]">

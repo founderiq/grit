@@ -1,69 +1,64 @@
 import SectionLabel from "@/components/ui/SectionLabel";
-import ImageSlot from "@/components/ui/ImageSlot";
 import { IconStar } from "@/components/ui/ProductoIcons";
 import { PRODUCTO_OPINIONES, PRODUCTO_RATING } from "@/lib/content";
 
 /**
- * "Lo que dicen quienes ya usan GRIT." — fondo hueso, grid de 4 reseñas.
- * Opiniones placeholder: reemplazar por reseñas reales cuando existan.
+ * "Lo que dicen quienes ya usan GRIT." — superficie clara.
+ * Encabezado con el cluster de rating y cuatro reseñas en grilla 2-up.
  */
 export default function ProductoOpiniones() {
   return (
-    <section className="bg-hueso text-tinta">
-      <div className="mx-auto max-w-contenido px-[26px] py-seccion md:px-10">
+    <section id="opiniones" className="grit-on-light bg-hueso text-tinta">
+      <div className="mx-auto max-w-contenido px-5 py-14 lg:px-10 lg:py-seccion">
         <SectionLabel dot="tierra-oscura" className="mb-[22px]">
           Opiniones
         </SectionLabel>
 
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="m-0 max-w-[520px] font-archivo text-[32px] font-extrabold uppercase leading-[1.05] tracking-[-0.02em] md:text-[40px]">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-5 lg:mb-10">
+          <h2 className="m-0 max-w-[520px] font-archivo text-[28px] font-extrabold uppercase leading-[1.02] tracking-[-0.02em] lg:text-[40px]">
             Lo que dicen quienes ya usan GRIT.
           </h2>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-[3px] text-tierra-oscura">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <IconStar key={i} width={16} />
-              ))}
-            </div>
-            <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-gris-medio">
-              {PRODUCTO_RATING.promedio} de 5 · {PRODUCTO_RATING.total} opiniones
+
+          <div className="flex items-center gap-3">
+            <span className="font-archivo text-[36px] font-black leading-none text-tinta lg:text-[44px]">
+              {PRODUCTO_RATING.promedio}
             </span>
+            <div>
+              <div className="flex items-center gap-[3px] text-tinta" aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <IconStar key={i} width={14} />
+                ))}
+              </div>
+              <div className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-gris-oscuro">
+                {PRODUCTO_RATING.etiquetaLarga}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-[10px] sm:grid-cols-2">
-          {PRODUCTO_OPINIONES.map((op, i) => (
-            <div
-              key={i}
-              className="rounded-[10px] border border-borde-claro bg-superficie-clara p-6"
+        <ul className="m-0 grid list-none gap-[10px] p-0 lg:grid-cols-2">
+          {PRODUCTO_OPINIONES.map((op) => (
+            <li
+              key={op.titulo}
+              className="rounded-card border-hairline border-borde-claro bg-superficie-clara p-5 lg:p-6"
             >
-              <div className="mb-3 flex items-center gap-[3px] text-tierra-oscura">
-                {Array.from({ length: op.rating }).map((_, j) => (
-                  <IconStar key={j} width={14} />
+              <div className="flex items-center gap-[3px] text-tinta" aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <IconStar key={i} width={13} />
                 ))}
               </div>
-              <p className="m-0 mb-5 font-archivo text-[16px] font-semibold leading-[1.35] text-tinta">
-                «{op.quote}»
+              <p className="m-0 mb-2 mt-3 font-archivo text-[15.5px] font-bold leading-[1.3] text-tinta">
+                {op.titulo}
               </p>
-              <div className="flex items-center gap-3">
-                <ImageSlot
-                  id={`grit-producto-opinion-${i}`}
-                  shape="circle"
-                  placeholder=""
-                  className="h-9 w-9 flex-shrink-0"
-                />
-                <div>
-                  <div className="text-[13px] font-semibold text-tinta">
-                    {op.nombre}
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-gris-medio">
-                    {op.ubicacion}
-                  </div>
-                </div>
-              </div>
-            </div>
+              <p className="m-0 mb-4 text-[13.5px] leading-[1.55] text-gris-tinta">
+                {op.texto}
+              </p>
+              <p className="m-0 font-mono text-[9.5px] uppercase tracking-[0.1em] text-gris-oscuro">
+                {op.firma}
+              </p>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </section>
   );

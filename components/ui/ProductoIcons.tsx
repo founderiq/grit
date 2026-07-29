@@ -165,3 +165,25 @@ export function IconPlus({ className = "", width = 14 }: IconProps) {
     </svg>
   );
 }
+
+/** Quitar la pulsera extra del carrito. */
+export function IconTrash({ className = "", width = 16 }: IconProps) {
+  return (
+    <svg {...base} width={width} className={className} aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+      <path d="M6 7l.8 11.2A1.9 1.9 0 0 0 8.7 20h6.6a1.9 1.9 0 0 0 1.9-1.8L18 7" />
+      <path d="M10.5 11v5M13.5 11v5" />
+    </svg>
+  );
+}
+
+/** Copiar los datos bancarios en el checkout. */
+export function IconCopy({ className = "", width = 15 }: IconProps) {
+  return (
+    <svg {...base} width={width} className={className} aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}

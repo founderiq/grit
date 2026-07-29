@@ -68,7 +68,7 @@ export const PRODUCT_SPECS = [
   { label: "Símbolo", valor: "Cruz bordada en hilo, no estampada" },
   { label: "Color y talle", valor: "Negro, talle único elástico" },
   { label: "Uso", valor: "Entreno, agua, rutina diaria" },
-  { label: "Precio", valor: "85.000 Gs" },
+  { label: "Precio", valor: "115.000 Gs" },
 ] as const;
 
 export type FAQ = {
@@ -139,187 +139,585 @@ export const FAQS: FAQ[] = [
   },
 ];
 
+
 /* ============================================================
-   Página de producto (/producto)
+   Página de producto (/producto) — Product Experience handoff v1.0
+
+   Todo el copy de este bloque es final y está aprobado. No reescribir,
+   acortar ni traducir. Voseo paraguayo, sin emoji.
    ============================================================ */
+
+/** Formato de moneda del ecommerce: `Gs. 199.000`. Solo /producto, carrito
+ *  y checkout — la landing conserva su formato propio (`85.000 Gs`). */
+export const fmtGs = (n: number) => `Gs. ${n.toLocaleString("es-PY")}`;
 
 export type ProductoImagen = { src: string; alt: string };
 
-/** Galería de fotos — reusa las fotos de producto ya existentes en /public/img. */
+/**
+ * Galería de fotos, en el orden aprobado.
+ * Es data: para cambiar una foto alcanza con editar esta lista, sin tocar
+ * <ProductoGaleria />.
+ *
+ * NOTA: hoy `producto.jpg` y `producto-par.jpg` son el mismo archivo en
+ * /public/img (md5 idéntico), así que las posiciones 1 y 4 se ven iguales.
+ * Se mantiene la composición aprobada; al llegar la foto real del par solo
+ * hay que reemplazar el archivo.
+ */
 export const PRODUCTO_GALERIA: ProductoImagen[] = [
-  { src: "/img/producto.jpg", alt: "Pulseras Grit — Colección Fe" },
-  { src: "/img/producto-muneca.jpg", alt: "Pulsera Grit puesta en la muñeca" },
+  { src: "/img/producto.jpg", alt: "Pulsera NFC GRIT — Colección Fe" },
+  { src: "/img/producto-muneca.jpg", alt: "Pulsera GRIT puesta en la muñeca" },
   {
     src: "/img/producto-cruz.jpg",
-    alt: "Detalle de la cruz bordada en la pulsera Grit",
+    alt: "Detalle de la cruz bordada de la pulsera GRIT",
   },
-  { src: "/img/producto-par.jpg", alt: "Par de pulseras Grit" },
-  { src: "/img/producto-logo.jpg", alt: "Detalle del logo Grit bordado" },
+  { src: "/img/producto-par.jpg", alt: "Par de pulseras GRIT" },
+  { src: "/img/producto-logo.jpg", alt: "Detalle del logo GRIT bordado" },
 ];
 
+/* ------------------------------------------------------------
+   Catálogo — fuente única de verdad de precios
+   ------------------------------------------------------------ */
+
+export type BundleId = "1" | "2" | "3";
+
 export type ProductoBundle = {
-  id: string;
-  cantidad: number;
+  id: BundleId;
+  /** Pulseras que incluye el pack. */
+  unidades: number;
+  /** Nombre corto — el que se muestra en la página de producto. */
   nombre: string;
-  etiqueta: string;
+  /** Nombre largo — el que usan el carrito y el checkout. */
+  nombreLargo: string;
+  /** Línea de apoyo debajo del título. */
+  soporte: string;
   precio: number;
-  badge?: string;
+  /** Precio anterior tachado. 0 = el bundle no tiene precio de comparación. */
+  compare: number;
+  tag: string | null;
+  /** Los packs fijos no admiten cantidad; solo el pack de 1 tiene stepper. */
+  fijo: boolean;
 };
 
 export const PRODUCTO_BUNDLES: ProductoBundle[] = [
   {
     id: "1",
-    cantidad: 1,
-    nombre: "1 Pulsera Grit",
-    etiqueta: "Perfecta para empezar tu hábito diario",
-    precio: 85000,
+    unidades: 1,
+    nombre: "1 Pulsera GRIT",
+    nombreLargo: "1 Pulsera GRIT",
+    soporte: "Para empezar tu hábito diario de fe.",
+    precio: 115_000,
+    compare: 0,
+    tag: null,
+    fijo: false,
   },
   {
     id: "2",
-    cantidad: 2,
-    nombre: "2 Pulseras Grit",
-    etiqueta: "Una para vos y otra para regalar",
-    precio: 153000,
-    badge: "Más elegido",
+    unidades: 2,
+    nombre: "2 Pulseras GRIT",
+    nombreLargo: "Pack de 2 Pulseras GRIT",
+    soporte: "Una para vos y una para alguien que querés.",
+    precio: 199_000,
+    compare: 230_000,
+    tag: "Ideal para regalar",
+    fijo: true,
   },
   {
     id: "3",
-    cantidad: 3,
-    nombre: "3 Pulseras Grit",
-    etiqueta: "Para vos y toda tu familia",
-    precio: 199000,
-    badge: "Ahorra más",
+    unidades: 3,
+    nombre: "3 Pulseras GRIT",
+    nombreLargo: "Pack de 3 Pulseras GRIT",
+    soporte: "Para compartir con familia o amigos.",
+    precio: 269_000,
+    compare: 345_000,
+    tag: "Más elegido",
+    fijo: true,
   },
 ];
 
-/** Rating agregado que se muestra junto al título del producto y en opiniones. */
-export const PRODUCTO_RATING = { promedio: 4.9, total: 23 } as const;
+/** Bundle preseleccionado en la página de producto. */
+export const BUNDLE_POR_DEFECTO: BundleId = "2";
+
+/** Pulsera promocional del carrito (upsell de una sola vez). Fase 3. */
+export const EXTRA = {
+  nombre: "Pulsera GRIT extra",
+  precio: 70_000,
+  compare: 115_000,
+  descuento: "35% OFF",
+} as const;
+
+/** Precio de referencia de una pulsera suelta. */
+export const PRECIO_UNIT = 115_000;
+
+/** Pulseras a partir de las cuales el envío estándar es gratis. */
+export const ENVIO_GRATIS_DESDE = 3;
+
+/* ------------------------------------------------------------
+   Columna de compra
+   ------------------------------------------------------------ */
+
+export const PRODUCTO_COMPRA = {
+  eyebrow: "Pulsera NFC · Colección Fe",
+  titulo: "Pulsera NFC GRIT",
+  descripcion:
+    "Un recordatorio diario de fe en la muñeca. Acercás tu celular, tocás y recibís un versículo para tu día. Sin app. Sin batería.",
+  ctaAgregar: "Agregar al carrito",
+  ctaComprar: "Comprar ahora",
+  entrega: "Entregamos tu pedido en menos de 1 día",
+  envioGratisStrip: { titulo: "Envío gratis", pill: "Gratis" },
+} as const;
+
+/** Rating agregado que se muestra junto al título y en la sección Opiniones. */
+export const PRODUCTO_RATING = {
+  promedio: 4.9,
+  total: 213,
+  etiquetaCorta: "213 opiniones",
+  etiquetaLarga: "213 opiniones verificadas",
+} as const;
+
+export const PRODUCTO_URGENCIA = {
+  titulo: "Se están agotando rápido",
+  sub: "Debido a la alta demanda, la cantidad disponible es limitada",
+  porcentaje: 89,
+  vendido: "89% vendido",
+  restante: "Quedan pocas unidades",
+  restanteCorto: "Quedan pocas",
+} as const;
+
+export type ProductoTrustItem = { icono: "truck" | "shield" | "gift" | "tap"; label: string };
+
+export const PRODUCTO_TRUST: ProductoTrustItem[] = [
+  { icono: "truck", label: "Envío disponible" },
+  { icono: "shield", label: "Compra segura" },
+  { icono: "gift", label: "Listo para regalar" },
+  { icono: "tap", label: "Soporte WhatsApp" },
+];
+
+export const PRODUCTO_TESTIMONIO = {
+  titulo: "La uso todos los días desde que llegó.",
+  texto:
+    "El tap funciona de una y el versículo de la mañana ya es parte de mi rutina. La calidad es mejor de lo que esperaba.",
+  nombre: "— Camila R.",
+  verificada: "Compra verificada",
+  foto: "/img/camila-r.jpg",
+  fotoAlt: "Camila R.",
+  estrellas: 5,
+} as const;
+
+/* ------------------------------------------------------------
+   Secciones
+   ------------------------------------------------------------ */
+
+export const PRODUCTO_VIDA_REAL = {
+  eyebrow: "Personas reales · Fe real",
+  titulo: "Así se ve en la vida real.",
+  sub: "Personas reales usando GRIT, abriendo su pulsera y probando el tap NFC.",
+  captions: [
+    "Mi versículo del día",
+    "Ideal para regalar",
+    "Tap NFC",
+    "Sin app",
+    "Un recordatorio diario",
+  ],
+} as const;
 
 export const PRODUCTO_PASOS = [
   {
+    numero: "01",
     titulo: "Ponete la pulsera",
     descripcion:
-      "Ajustala a tu muñeca. Es elástica, cómoda y de talle único: se adapta a la mayoría.",
+      "Llevá GRIT con vos todos los días como un recordatorio de fe y propósito.",
   },
   {
+    numero: "02",
     titulo: "Acercá tu celular",
     descripcion:
-      "Un toque simple, sin apps ni configuraciones. Funciona con la mayoría de los celulares actuales.",
+      "Tocá la pulsera con tu celular compatible con NFC. Sin apps ni configuraciones.",
   },
   {
+    numero: "03",
     titulo: "Recibí tu versículo",
     descripcion:
-      "El versículo del día, con una lectura breve de la Biblia para acompañarlo.",
+      "Abrí el link y recibí una palabra para tu día, con una lectura breve.",
   },
 ] as const;
 
-export const PRODUCTO_RECORDATORIO_PUNTOS = [
-  "Te ayuda a crear un hábito diario de fe",
-  "Te acerca Su Palabra en el medio del día",
-  "Es simple, rápido y sin fricción",
-] as const;
+export const PRODUCTO_RECORDATORIO = {
+  eyebrow: "Por qué GRIT",
+  titulo: "A veces solo necesitás un recordatorio",
+  body: "Entre el trabajo, el ruido y la rutina, es fácil pasar el día sin parar un segundo. GRIT fue creada para ayudarte a volver a lo importante: una palabra, una pausa y un momento con Dios.",
+  puntos: [
+    "Te ayuda a crear un hábito diario.",
+    "Te recuerda volver a la fe durante el día.",
+    "Es simple, rápido y sin fricción.",
+  ],
+} as const;
 
 export const PRODUCTO_BENEFICIOS = [
   {
-    titulo: "Tu fe en segundos",
-    descripcion:
-      "Un toque y accedés al versículo del día. Sin scroll, sin distracciones.",
+    titulo: "Fe diaria en segundos",
+    descripcion: "Un versículo o reflexión cada día, sin buscar nada.",
   },
   {
     titulo: "Siempre con vos",
-    descripcion: "La llevás puesta todo el día: entreno, trabajo, rutina.",
+    descripcion: "La llevás en la muñeca como recordatorio constante.",
   },
   {
     titulo: "Sin apps ni batería",
-    descripcion: "Chip NFC pasivo. No se carga, no se actualiza, no falla.",
+    descripcion: "Solo acercás el celular y listo.",
   },
   {
     titulo: "Un regalo con propósito",
-    descripcion: "Para vos o para alguien que necesita un recordatorio diario.",
+    descripcion: "Ideal para alguien que necesita ánimo, fe o dirección.",
   },
   {
     titulo: "Diseño simple",
-    descripcion: "Minimalista, cómoda y pensada para durar en tu día a día.",
+    descripcion: "Fácil de combinar y usar todos los días.",
   },
   {
-    titulo: "Contenido que se renueva",
-    descripcion: "Un versículo distinto cada día, sin que tengas que hacer nada.",
+    titulo: "Experiencia digital",
+    descripcion: "Un producto físico conectado a contenido vivo.",
   },
 ] as const;
 
+export type ProductoOpinion = {
+  titulo: string;
+  texto: string;
+  firma: string;
+};
+
+export const PRODUCTO_OPINIONES: ProductoOpinion[] = [
+  {
+    titulo: "Me ayuda a empezar el día con otra cabeza.",
+    texto:
+      "La uso a la mañana antes de salir. Es simple, pero me recuerda frenar un segundo y leer algo que me ordena el día.",
+    firma: "— María G. · Compra verificada",
+  },
+  {
+    titulo: "Se la regalé a mi mamá y le encantó.",
+    texto:
+      "Me gustó porque no es un regalo común. Tiene algo más personal y con sentido.",
+    firma: "— Sofía R. · Compra verificada",
+  },
+  {
+    titulo: "El tap funciona súper fácil.",
+    texto:
+      "Pensé que iba a ser complicado, pero acercás el celular y aparece el link. No tuve que instalar nada.",
+    firma: "— Lucas M. · Compra verificada",
+  },
+  {
+    titulo: "Es como tener un recordatorio de fe en la muñeca.",
+    texto: "Cada vez que la veo, me acuerdo de volver a lo importante.",
+    firma: "— Ana P. · Compra verificada",
+  },
+];
+
 export const PRODUCTO_INCLUYE = [
-  "Pulsera Grit con chip NFC",
-  "Acceso al versículo y la lectura diaria",
+  "Pulsera NFC GRIT",
+  "Acceso a versículos y reflexiones diarias",
   "Instrucciones simples de uso",
   "Packaging premium, listo para regalar",
   "Soporte por WhatsApp",
 ] as const;
 
-export const PRODUCTO_REGALO_ITEMS = [
-  {
-    titulo: "Para vos",
-    descripcion: "Un recordatorio diario de quién decidiste ser.",
-  },
-  {
-    titulo: "Para tu pareja",
-    descripcion: "Una forma simple de acompañar su fe.",
-  },
-  {
-    titulo: "Para un amigo",
-    descripcion: "Un gesto con significado, no solo un objeto.",
-  },
-  {
-    titulo: "Para quien lo necesita",
-    descripcion:
-      "Alguien que atraviesa un momento difícil y necesita un empujón.",
-  },
-] as const;
+export const PRODUCTO_REGALO = {
+  eyebrow: "Para regalar",
+  titulo: "Un regalo simple, pero con mucho significado.",
+  sub: "De esos regalos que no quedan en un cajón: se usan todos los días y acompañan de verdad.",
+  cta: "Elegir mi bundle",
+  ocasiones: [
+    "Para tu pareja",
+    "Para mamá o papá",
+    "Para amigos",
+    "Para alguien que la está pasando difícil",
+    "Para vos mismo",
+  ],
+} as const;
 
-export type ProductoOpinion = {
-  quote: string;
-  nombre: string;
-  ubicacion: string;
-  rating: number;
-};
+export const PRODUCTO_CTA_FINAL = {
+  titulo: "Empezá tu hábito diario de fe con GRIT",
+  sub: "Una pulsera. Un toque. Una palabra para tu día.",
+  cta: "Comprar ahora",
+} as const;
 
-/** Opiniones placeholder — reemplazar por reseñas reales de clientes. */
-export const PRODUCTO_OPINIONES: ProductoOpinion[] = [
+/** FAQ de la página de producto — 11 preguntas aprobadas.
+ *  Distinta del set `FAQS` de la landing, que se conserva sin cambios. */
+export const FAQ_PRODUCTO: FAQ[] = [
   {
-    quote:
-      "La toco antes de entrenar y antes de orar. Es el mismo gesto: acordarme de quién quiero ser.",
-    nombre: "Nombre Apellido",
-    ubicacion: "Asunción, PY",
-    rating: 5,
+    pregunta: "¿Necesito descargar una app?",
+    respuesta:
+      "No. Acercás tu celular a la pulsera y el versículo se abre directo en el navegador. Sin cuentas, sin descargas.",
   },
   {
-    quote:
-      "Pensé que era otro accesorio más. Terminó siendo el recordatorio que más necesitaba en el día.",
-    nombre: "Nombre Apellido",
-    ubicacion: "Luque, PY",
-    rating: 5,
+    pregunta: "¿Cómo funciona la pulsera NFC?",
+    respuesta:
+      "Lleva un chip NFC pasivo dentro de la cruz. Al acercar tu celular, se abre el link con el versículo y la lectura del día.",
   },
   {
-    quote:
-      "Se lo regalé a mi hermana y ahora las dos la usamos. Simple, pero significa mucho.",
-    nombre: "Nombre Apellido",
-    ubicacion: "Ciudad del Este, PY",
-    rating: 5,
+    pregunta: "¿Funciona con cualquier celular?",
+    respuesta:
+      "Funciona con la gran mayoría de los celulares con NFC: iPhone 7 en adelante y casi todos los Android de los últimos años.",
   },
   {
-    quote:
-      "No hace falta ninguna app. La toco y ya está: un versículo, treinta segundos, listo.",
-    nombre: "Nombre Apellido",
-    ubicacion: "Encarnación, PY",
-    rating: 5,
+    pregunta: "¿La pulsera necesita batería?",
+    respuesta: "No. El chip es pasivo: no se carga, no se apaga, no falla.",
+  },
+  {
+    pregunta: "¿Qué contenido voy a recibir?",
+    respuesta:
+      "Un versículo distinto cada día, acompañado de una reflexión breve para tu jornada.",
+  },
+  {
+    pregunta: "¿El contenido cambia todos los días?",
+    respuesta:
+      "Sí. Cada día tenés un versículo nuevo, sin que tengas que hacer nada.",
+  },
+  {
+    pregunta: "¿Puedo regalarla?",
+    respuesta:
+      "Sí. Llega en un packaging premium, lista para regalar. Es uno de los usos más elegidos.",
+  },
+  {
+    pregunta: "¿Qué pasa si no sé usar NFC?",
+    respuesta:
+      "Te enviamos instrucciones simples con tu pedido y te acompañamos por WhatsApp hasta que funcione.",
+  },
+  {
+    pregunta: "¿Es resistente al agua?",
+    respuesta:
+      "Aguanta el uso diario: sudor, salpicaduras y lavarte las manos. Evitá sumergirla por mucho tiempo.",
+  },
+  {
+    pregunta: "¿Cuánto tarda la entrega?",
+    respuesta:
+      "En Asunción y Gran Asunción, 1 a 2 días hábiles. En el interior del país, 2 a 4 días hábiles por encomienda.",
+  },
+  {
+    pregunta: "¿Qué métodos de pago aceptan?",
+    respuesta:
+      "Transferencia bancaria y pago online con tarjeta de crédito o débito.",
   },
 ];
 
+export const FAQ_PRODUCTO_NOTA =
+  "¿Tenés otra duda? Escribinos por WhatsApp y te respondemos en el día.";
+
+/* ------------------------------------------------------------
+   Carrito lateral
+   ------------------------------------------------------------ */
+
+export const CARRITO = {
+  titulo: "Tu carrito",
+  cerrar: "Cerrar carrito",
+  itemMeta: "Colección Fe · Talle único",
+  quitar: "Quitar",
+  thumb: "/img/producto.jpg",
+  progreso: {
+    completo: "¡Tenés envío gratis en tu pedido!",
+    falta1: "Solo te falta agregar una pulsera más para tener envío gratis",
+    faltaN: (n: number) => `Te faltan ${n} pulseras para tener envío gratis`,
+    contador: (n: number) => `${n} de ${ENVIO_GRATIS_DESDE} pulseras`,
+    etiqueta: "Envío gratis",
+  },
+  totales: {
+    subtotal: "Subtotal",
+    ahorras: "Ahorrás",
+    total: "Total",
+    nota: "Envío calculado en el checkout",
+    cta: "Finalizar compra",
+    seguridad: "Compra segura",
+  },
+  vacio: {
+    titulo: "Tu carrito está vacío",
+    sub: "Elegí tu pack y empezá tu hábito diario.",
+    cta: "Ver los packs",
+  },
+} as const;
+
+/* ------------------------------------------------------------
+   Checkout
+   ------------------------------------------------------------ */
+
+export type ZonaId = "asuncion" | "interior";
+
+export type ZonaEnvio = {
+  id: ZonaId;
+  nombre: string;
+  /** Nombre corto, el que se usa en la línea del resumen. */
+  corto: string;
+  plazo: string;
+  costo: number;
+};
+
+export const ENVIOS: Record<ZonaId, ZonaEnvio> = {
+  asuncion: {
+    id: "asuncion",
+    nombre: "Asunción / Gran Asunción",
+    corto: "Gran Asunción",
+    plazo: "1 a 2 días hábiles",
+    costo: 20_000,
+  },
+  interior: {
+    id: "interior",
+    nombre: "Interior y resto de ciudades",
+    corto: "Interior",
+    plazo: "Encomienda · 2 a 4 días hábiles",
+    costo: 30_000,
+  },
+};
+
+export const ZONA_POR_DEFECTO: ZonaId = "asuncion";
+
+export const VIP = {
+  nombre: "Envío Prioritario VIP",
+  detalle: "Despacho inmediato en 24hs",
+  etiqueta: "Opcional",
+  costo: 10_000,
+} as const;
+
+/** Datos bancarios que se muestran en el checkout y que copia el botón. */
+export const BANCO = [
+  { etiqueta: "Entidad", valor: "ueno bank" },
+  { etiqueta: "Titular", valor: "Emilio Manuel Morales Gauto" },
+  { etiqueta: "Cédula", valor: "4.488.640" },
+  { etiqueta: "Número de cuenta", valor: "619537908" },
+  { etiqueta: "Alias", valor: "4488640" },
+  { etiqueta: "WhatsApp", valor: "0992 363 483" },
+] as const;
+
+export const CHECKOUT = {
+  barra: "Entregamos tu pedido en menos de 1 día · Envíos a todo el país",
+  barraCorta: "Entregamos tu pedido en menos de 1 día",
+  seguridad: "Compra segura",
+  titulo: "Finalizar compra",
+  sub: "Completá tus datos para confirmar tu pedido de forma rápida y segura.",
+
+  seccionDatos: "Datos de contacto y envío",
+  seccionEnvio: "Envío",
+  seccionPago: "Método de pago",
+  seccionResumen: "Resumen del pedido",
+
+  campos: {
+    nombre: {
+      label: "Nombre completo",
+      placeholder: "Tu nombre y apellido",
+      error: "Ingresá tu nombre completo.",
+    },
+    telefono: {
+      label: "Teléfono / WhatsApp",
+      placeholder: "09xx xxx xxx",
+      error: "Ingresá un número de WhatsApp válido.",
+    },
+    ciudad: {
+      label: "Ciudad",
+      placeholder: "Asunción",
+      error: "Ingresá tu ciudad.",
+    },
+    direccion: {
+      label: "Dirección",
+      placeholder: "Calle y número",
+      error: "Ingresá tu dirección.",
+    },
+    ubicacion: {
+      label: "Ubicación exacta (opcional)",
+      placeholder: "Pegá acá el enlace de tu ubicación",
+      ayuda: "Podés copiar y pegar un enlace de Google Maps.",
+      error: "Ingresá un enlace válido o dejá el campo vacío.",
+    },
+  },
+
+  pago: {
+    transferencia: "Transferencia bancaria",
+    sinRecargo: "Sin recargo",
+    tarjeta: "Pago online con tarjeta crédito/débito",
+    tarjetaCorto: "Pago online con tarjeta",
+    tarjetaNota:
+      "Al confirmar tu pedido, te redirigimos a una página de pago segura para completar el pago con tu tarjeta.",
+    copiar: "Copiar datos de la cuenta",
+    copiado: "Datos copiados",
+    copiarError: "No pudimos copiar. Seleccioná los datos manualmente.",
+    instruccion: {
+      inicio: "Para confirmar tu pedido",
+      resto:
+        ", realizá la transferencia y enviá el comprobante por WhatsApp al ",
+      cierre: ". Apenas lo recibimos, despachamos tu GRIT.",
+    },
+  },
+
+  resumen: {
+    subtotal: "Subtotal",
+    ahorro: "Ahorrás",
+    extra: EXTRA.nombre,
+    envio: "Envío",
+    gratis: "Gratis",
+    vip: VIP.nombre,
+    total: "Total del pedido",
+    itemMeta: "Colección Fe · Talle único",
+    cta: "Confirmar pedido",
+    ctaEnviando: "Confirmando…",
+    confirmando: "Confirmando tu pedido…",
+    confirmandoDetalle: "No cierres esta página. Te llevamos a la confirmación en unos segundos.",
+  },
+
+  footerLegal: "© 2026 GRIT · Todos los derechos reservados",
+} as const;
+
+/* ------------------------------------------------------------
+   Página de confirmación (/gracias)
+   ------------------------------------------------------------ */
+
+export const GRACIAS = {
+  eyebrow: "Confirmación",
+  titulo: "¡Pedido registrado!",
+  mensajeTransferencia:
+    "Recibimos correctamente tu pedido. Para confirmarlo, realizá la transferencia y enviá el comprobante por WhatsApp.",
+  mensajeTarjeta:
+    "Recibimos correctamente tu pedido. El pago online todavía está pendiente.",
+  etiquetas: {
+    numero: "Número de pedido",
+    total: "Total del pedido",
+    metodo: "Método de pago",
+    envio: "Envío",
+    estadoPago: "Estado del pago",
+    productos: "Tu pedido",
+  },
+  metodos: {
+    transferencia: "Transferencia bancaria",
+    tarjeta: "Tarjeta de crédito/débito",
+  } as Record<string, string>,
+  estadosPago: {
+    pendiente_transferencia: "Pendiente de transferencia",
+    pendiente_pago_online: "Pendiente de pago online",
+    pagado: "Pagado",
+    fallido: "Fallido",
+    cancelado: "Cancelado",
+  } as Record<string, string>,
+  ctaComprobante: "Enviar comprobante por WhatsApp",
+  ctaInicio: "Volver al inicio",
+  noEncontrado: {
+    eyebrow: "Confirmación",
+    titulo: "No encontramos ese pedido",
+    mensaje:
+      "El enlace puede haber expirado o estar incompleto. Si ya hiciste tu pedido, escribinos por WhatsApp y lo verificamos.",
+    cta: "Escribinos por WhatsApp",
+  },
+} as const;
+
+export const CART_UPSELL = {
+  titulo: "Agregá 1 pulsera extra con",
+  destacado: EXTRA.descuento,
+  sub: "Sumás una más y desbloqueás más valor por menos.",
+  cta: "Agregar",
+  thumb: "/img/producto-cruz.jpg",
+  quitarLabel: "Quitar Pulsera GRIT extra",
+} as const;
+
 /** Enlaces de contacto / redes. Centralizados para reusar en CTA y footer. */
 export const LINKS = {
-  // Número placeholder de Paraguay — reemplazar por el real.
   whatsapp:
-    "https://wa.me/595000000000?text=Hola%20Grit%2C%20quiero%20conseguir%20mi%20pulsera",
-  whatsappNumero: "595000000000",
+    "https://wa.me/595992363483?text=Hola%20Grit%2C%20quiero%20conseguir%20mi%20pulsera",
+  whatsappNumero: "595992363483",
+  /** El número tal como se muestra en pantalla. */
+  whatsappVisible: "0992 363 483",
   instagram: "https://instagram.com/grit.py",
   contacto: "mailto:hola@grit.py",
 } as const;
