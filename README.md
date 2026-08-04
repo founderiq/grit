@@ -133,7 +133,10 @@ npm i -g vercel
 vercel --prod
 ```
 
-No requiere variables de entorno.
+Variables de entorno: ver `.env.example`. Todas son opcionales para que la
+landing compile y funcione; el checkout y el panel necesitan las de Supabase, y
+el Meta Pixel funciona con el ID por defecto si no se configura
+`NEXT_PUBLIC_META_PIXEL_ID`.
 
 > **Antes de publicar:** actualizá los datos reales en `lib/content.ts`
 > (`LINKS.whatsapp`, `LINKS.instagram`, `LINKS.contacto`) y la URL canónica en

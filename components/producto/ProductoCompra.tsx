@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import SectionLabel from "@/components/ui/SectionLabel";
 import {
@@ -24,6 +24,7 @@ import {
   type ProductoBundle,
 } from "@/lib/content";
 import { calcularTotales, getBundle } from "@/lib/cart";
+import { trackAddToCartBundle, trackViewContent } from "@/lib/meta-pixel";
 import { useCart } from "@/context/CartContext";
 
 const ICONOS_TRUST: Record<string, IconComponent> = {
@@ -167,13 +168,32 @@ export default function ProductoCompra({
   const totales = calcularTotales(bundle);
 
   /**
+   * ViewContent — una sola vez por visita a /producto, con el pack que viene
+   * preseleccionado. Cambiar de pack no vuelve a reportar la vista: la página
+   * de producto se vio una vez.
+   */
+  const vistaReportada = useRef(false);
+  useEffect(() => {
+    if (vistaReportada.current) return;
+    vistaReportada.current = true;
+    trackViewContent(BUNDLE_POR_DEFECTO);
+  }, []);
+
+  /**
    * Agrega el bundle elegido y abre el drawer — el reducer del carrito hace
    * las dos cosas. Nunca navega al checkout.
    */
   const agregarAlCarrito = (e: React.MouseEvent<HTMLButtonElement>) => {
-    cart?.agregarBundle(bundleId);
+    // Sin carrito montado no hay nada que agregar, y por lo tanto tampoco hay
+    // AddToCart que reportar.
+    if (!cart) return;
+
+    cart.agregarBundle(bundleId);
     // Se guarda el disparador para devolverle el foco al cerrar el carrito.
-    if (cart) cart.disparadorRef.current = e.currentTarget;
+    cart.disparadorRef.current = e.currentTarget;
+
+    // El reducer ya aceptó el pack: recién ahora el evento es verdadero.
+    trackAddToCartBundle(bundleId);
   };
 
   /**

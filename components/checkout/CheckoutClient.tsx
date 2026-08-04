@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { MARCA_LIMPIEZA } from "@/components/gracias/LimpiarCarrito";
@@ -21,6 +21,7 @@ import {
   type PedidoBase,
 } from "@/lib/checkout";
 import { CHECKOUT, type ZonaId } from "@/lib/content";
+import { trackAddPaymentInfo, trackInitiateCheckout } from "@/lib/meta-pixel";
 import {
   claveSesionCheckout,
   olvidarSesionCheckout,
@@ -106,6 +107,40 @@ export default function CheckoutClient() {
   const totales = totalesCheckout(pedido, zona, vip);
 
   /* --------------------------------------------------------------------
+     Meta Pixel — InitiateCheckout
+
+     Se dispara por entrar de verdad al checkout, no por el click del botón
+     que trajo hasta acá. Espera a que el pedido sea el definitivo: si viene
+     del carrito, recién después de hidratar localStorage, para no reportar
+     el pack por defecto y corregirlo después. Un solo evento por visita,
+     garantizado por el ref: los re-renders no lo repiten.
+     -------------------------------------------------------------------- */
+  const checkoutReportado = useRef(false);
+
+  useEffect(() => {
+    const listo = desdeParams !== null || !cart || cart.hidratado;
+    if (!listo || checkoutReportado.current) return;
+
+    checkoutReportado.current = true;
+    trackInitiateCheckout(pedido, totales.total, totales.unidades);
+  }, [desdeParams, cart, pedido, totales.total, totales.unidades]);
+
+  /* --------------------------------------------------------------------
+     Meta Pixel — AddPaymentInfo
+
+     Un evento por método elegido. Elegir el mismo método dos veces, o
+     confirmar el pedido con el método que ya venía seleccionado, no vuelve a
+     reportar.
+     -------------------------------------------------------------------- */
+  const pagosReportados = useRef<Set<MetodoPago>>(new Set());
+
+  const reportarPago = (m: MetodoPago) => {
+    if (pagosReportados.current.has(m)) return;
+    pagosReportados.current.add(m);
+    trackAddPaymentInfo({ ...pedido }, totales.total, totales.unidades);
+  };
+
+  /* --------------------------------------------------------------------
      Checkout abandonado
 
      Se registra a quien dejó su nombre y su WhatsApp y todavía no confirmó.
@@ -182,6 +217,10 @@ export default function CheckoutClient() {
       refs[primerError].current?.focus();
       return;
     }
+
+    // Confirmar el pedido también confirma el método de pago. Si ya se
+    // reportó al elegirlo, esto no hace nada.
+    reportarPago(metodo);
 
     setEnviando(true);
 
@@ -271,6 +310,7 @@ export default function CheckoutClient() {
             onMetodo={(m) => {
               avanzarPaso("pago");
               setMetodo(m);
+              reportarPago(m);
             }}
           />
         </div>

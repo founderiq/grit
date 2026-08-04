@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import MetaPixel from "@/components/MetaPixel";
+import { META_PIXEL_ID } from "@/lib/meta-pixel";
 import {
   SITE_URL,
   organizationSchema,
@@ -99,6 +101,21 @@ export default function RootLayout({
       className={`${archivo.variable} ${inter.variable} ${plexMono.variable}`}
     >
       <body>
+        {/* Meta Pixel — se inicializa en el navegador y reporta PageView en
+            cada cambio real de ruta. Ver components/MetaPixel.tsx. */}
+        <MetaPixel />
+        <noscript>
+          {/* Respaldo del código base de Meta para quien navega sin JS. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+            alt=""
+          />
+        </noscript>
+
         {children}
         {/* Datos estructurados JSON-LD para SEO */}
         <script

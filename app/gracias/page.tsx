@@ -3,6 +3,8 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Logo from "@/components/Logo";
 import LimpiarCarrito from "@/components/gracias/LimpiarCarrito";
+import PixelPurchase from "@/components/gracias/PixelPurchase";
+import { datosDeItems } from "@/lib/meta-pixel";
 import { IconCheckCircle, IconShield } from "@/components/ui/ProductoIcons";
 import { getSupabaseAdmin, hayConfiguracionSupabase } from "@/lib/supabase-admin";
 import { esUuid } from "@/lib/pedidos";
@@ -27,6 +29,8 @@ type Pedido = {
   shipping_cost: number;
   vip_shipping: boolean;
   items: {
+    sku: string;
+    bundle_id: string | null;
     product_name: string;
     quantity: number;
     line_total: number;
@@ -50,7 +54,7 @@ async function buscarPedido(token: string): Promise<Pedido | null> {
     .select(
       "order_number, customer_name, total, payment_method, payment_status, " +
         "shipping_zone, shipping_cost, vip_shipping, " +
-        "order_items ( product_name, quantity, line_total, is_promotional )",
+        "order_items ( sku, bundle_id, product_name, quantity, line_total, is_promotional )",
     )
     .eq("confirmation_token", token)
     .maybeSingle();
@@ -185,6 +189,10 @@ export default async function GraciasPage({
     .filter(Boolean)
     .join(" · ");
 
+  // Meta Pixel: SKUs y cantidades del pedido ya guardado. Sin datos del
+  // cliente — el pixel sólo recibe qué se compró, cuánto y el número de pedido.
+  const pixel = datosDeItems(pedido.items);
+
   const mensajeWhatsapp = encodeURIComponent(
     `Hola Grit, acabo de hacer el pedido ${pedido.order_number} ` +
       `a nombre de ${pedido.customer_name}, por un total de ${fmtGs(pedido.total)}. ` +
@@ -195,6 +203,16 @@ export default async function GraciasPage({
     <>
       {/* Limpia el carrito recién ahora, con el pedido ya confirmado. */}
       <LimpiarCarrito token={token} />
+
+      {/* Purchase — el pedido existe en la base y el servidor ya lo leyó.
+          La deduplicación es por número de pedido. */}
+      <PixelPurchase
+        orderId={pedido.order_number}
+        valor={pedido.total}
+        contents={pixel.contents}
+        unidades={pixel.unidades}
+        contentName={pedido.items[0]?.product_name}
+      />
 
       <Cabecera />
 
