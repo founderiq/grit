@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef } from "react";
 import { useCartRequerido } from "@/context/CartContext";
 import { getBundle } from "@/lib/cart";
+import { trackAddToCartExtra } from "@/lib/meta-pixel";
 import CartHeader from "./CartHeader";
 import CartFreeShipping from "./CartFreeShipping";
 import CartLineItem from "./CartLineItem";
@@ -104,6 +105,17 @@ export default function CartDrawer() {
     document.getElementById("comprar")?.scrollIntoView({ block: "start" });
   };
 
+  /**
+   * Agrega la pulsera promocional y reporta AddToCart. El `return` temprano
+   * respeta la misma invariante que el reducer —no existe una segunda pulsera
+   * extra— para que un doble click no genere un evento de más.
+   */
+  const agregarExtra = () => {
+    if (estado.hasExtra) return;
+    cart.agregarExtra();
+    trackAddToCartExtra();
+  };
+
   return (
     <div className="fixed inset-0 z-overlay">
       <button
@@ -148,7 +160,7 @@ export default function CartDrawer() {
               {estado.hasExtra ? (
                 <CartExtraItem onQuitar={cart.quitarExtra} />
               ) : (
-                <CartUpsell onAgregar={cart.agregarExtra} />
+                <CartUpsell onAgregar={agregarExtra} />
               )}
             </div>
 
