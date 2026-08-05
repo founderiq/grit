@@ -311,14 +311,48 @@ export const PRODUCTO_VIDA_REAL = {
   eyebrow: "Personas reales · Fe real",
   titulo: "Así se ve en la vida real.",
   sub: "Personas reales usando GRIT, abriendo su pulsera y probando el tap NFC.",
-  captions: [
-    "Mi versículo del día",
-    "Ideal para regalar",
-    "Tap NFC",
-    "Sin app",
-    "Un recordatorio diario",
-  ],
 } as const;
+
+export type ProductoVidaRealVideo = {
+  webm: string;
+  mp4: string;
+  poster: string;
+  label: string;
+};
+
+/** Videos UGC, en el orden aprobado (grit_1 a grit_5). */
+export const PRODUCTO_VIDA_REAL_VIDEOS: ProductoVidaRealVideo[] = [
+  {
+    webm: "/videos/grit/grit-1.webm",
+    mp4: "/videos/grit/grit-1.mp4",
+    poster: "/videos/grit/grit-1-poster.jpg",
+    label: "Cliente mostrando la pulsera GRIT",
+  },
+  {
+    webm: "/videos/grit/grit-2.webm",
+    mp4: "/videos/grit/grit-2.mp4",
+    poster: "/videos/grit/grit-2-poster.jpg",
+    label: "Cliente usando la pulsera GRIT en el día a día",
+  },
+  {
+    webm: "/videos/grit/grit-3.webm",
+    mp4: "/videos/grit/grit-3.mp4",
+    poster: "/videos/grit/grit-3-poster.jpg",
+    label: "Cliente probando el tap NFC de la pulsera GRIT",
+  },
+  {
+    webm: "/videos/grit/grit-4.webm",
+    mp4: "/videos/grit/grit-4.mp4",
+    poster: "/videos/grit/grit-4-poster.jpg",
+    label: "Cliente abriendo su pulsera GRIT",
+  },
+  {
+    webm: "/videos/grit/grit-5.webm",
+    mp4: "/videos/grit/grit-5.mp4",
+    poster: "/videos/grit/grit-5-poster.jpg",
+    label: "Cliente compartiendo su experiencia con GRIT",
+  },
+];
 
 export const PRODUCTO_PASOS = [
   {

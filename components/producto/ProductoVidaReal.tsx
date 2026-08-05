@@ -1,10 +1,6 @@
 import SectionLabel from "@/components/ui/SectionLabel";
-import ImageSlot from "@/components/ui/ImageSlot";
-import { PRODUCTO_VIDA_REAL } from "@/lib/content";
-
-/** IDs de los slots de UGC. Se conservan los originales para que las fotos
- *  ya cargadas por el cliente sobrevivan al rediseño. */
-const SLOTS = [1, 2, 3, 4, 5];
+import UgcVideo from "@/components/ui/UgcVideo";
+import { PRODUCTO_VIDA_REAL, PRODUCTO_VIDA_REAL_VIDEOS } from "@/lib/content";
 
 /**
  * "Así se ve en la vida real." — segunda sección, superficie clara.
@@ -29,17 +25,15 @@ export default function ProductoVidaReal() {
         {/* El margen negativo cancela el padding del contenedor para que la
             fila llegue al borde de la pantalla sin desbordar la página. */}
         <ul className="-mx-5 m-0 flex list-none gap-[10px] overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-x-visible lg:px-0">
-          {SLOTS.map((n, i) => (
-            <li key={n} className="w-[150px] flex-shrink-0 lg:w-auto">
-              <ImageSlot
-                id={`grit-producto-vida-${n}`}
+          {PRODUCTO_VIDA_REAL_VIDEOS.map((video) => (
+            <li key={video.mp4} className="w-[150px] flex-shrink-0 lg:w-auto">
+              <UgcVideo
+                sources={{ webm: video.webm, mp4: video.mp4 }}
+                poster={video.poster}
+                label={video.label}
                 radius={10}
-                placeholder="UGC"
                 className="h-[267px] w-full lg:aspect-[9/16] lg:h-auto"
               />
-              <span className="mt-2 block font-mono text-[9px] uppercase leading-[1.4] tracking-[0.08em] text-gris-oscuro lg:text-[9.5px]">
-                {PRODUCTO_VIDA_REAL.captions[i]}
-              </span>
             </li>
           ))}
         </ul>
