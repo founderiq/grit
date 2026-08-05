@@ -154,24 +154,51 @@ export const fmtGs = (n: number) => `Gs. ${n.toLocaleString("es-PY")}`;
 export type ProductoImagen = { src: string; alt: string };
 
 /**
- * Galería de fotos, en el orden aprobado.
+ * Galería de fotos, en el orden aprobado (galeria-01 a galeria-10).
  * Es data: para cambiar una foto alcanza con editar esta lista, sin tocar
- * <ProductoGaleria />.
- *
- * NOTA: hoy `producto.jpg` y `producto-par.jpg` son el mismo archivo en
- * /public/img (md5 idéntico), así que las posiciones 1 y 4 se ven iguales.
- * Se mantiene la composición aprobada; al llegar la foto real del par solo
- * hay que reemplazar el archivo.
+ * <ProductoGaleria />. galeria-01 es la imagen principal.
  */
 export const PRODUCTO_GALERIA: ProductoImagen[] = [
-  { src: "/img/producto.jpg", alt: "Pulsera NFC GRIT — Colección Fe" },
-  { src: "/img/producto-muneca.jpg", alt: "Pulsera GRIT puesta en la muñeca" },
   {
-    src: "/img/producto-cruz.jpg",
-    alt: "Detalle de la cruz bordada de la pulsera GRIT",
+    src: "/img/galeria/galeria-01.webp",
+    alt: "Pulsera GRIT — más que un accesorio, un recordatorio diario de fe",
   },
-  { src: "/img/producto-par.jpg", alt: "Par de pulseras GRIT" },
-  { src: "/img/producto-logo.jpg", alt: "Detalle del logo GRIT bordado" },
+  {
+    src: "/img/galeria/galeria-02.webp",
+    alt: "Par de pulseras GRIT junto a una Biblia abierta y una vela",
+  },
+  {
+    src: "/img/galeria/galeria-03.webp",
+    alt: "Cómo funciona el tap NFC: acercás el celular y recibís tu versículo del día",
+  },
+  {
+    src: "/img/galeria/galeria-04.webp",
+    alt: "Detalle de la pulsera GRIT con cruz bordada sobre fondo oscuro",
+  },
+  {
+    src: "/img/galeria/galeria-05.webp",
+    alt: "Testimonio de cliente usando la pulsera GRIT en su rutina diaria",
+  },
+  {
+    src: "/img/galeria/galeria-06.webp",
+    alt: "Mujer mostrando la pulsera GRIT y el versículo del día en su celular",
+  },
+  {
+    src: "/img/galeria/galeria-07.webp",
+    alt: "App GRIT mostrando el versículo del día y contenido devocional",
+  },
+  {
+    src: "/img/galeria/galeria-08.webp",
+    alt: "Hombre llevando la pulsera GRIT en la muñeca",
+  },
+  {
+    src: "/img/galeria/galeria-09.webp",
+    alt: "Características de la pulsera GRIT: NFC, escaneo rápido y diseño negro minimalista",
+  },
+  {
+    src: "/img/galeria/galeria-10.webp",
+    alt: "Detalle del chip NFC integrado en la pulsera GRIT",
+  },
 ];
 
 /* ------------------------------------------------------------
