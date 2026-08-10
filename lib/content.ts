@@ -642,7 +642,7 @@ export const BANCO = [
   { etiqueta: "Cédula", valor: "4.488.640" },
   { etiqueta: "Número de cuenta", valor: "619537908" },
   { etiqueta: "Alias", valor: "4488640" },
-  { etiqueta: "WhatsApp", valor: "0992 363 483" },
+  { etiqueta: "WhatsApp", valor: "0994320994" },
 ] as const;
 
 export const CHECKOUT = {
@@ -775,10 +775,19 @@ export const CART_UPSELL = {
 /** Enlaces de contacto / redes. Centralizados para reusar en CTA y footer. */
 export const LINKS = {
   whatsapp:
-    "https://wa.me/595992363483?text=Hola%20Grit%2C%20quiero%20conseguir%20mi%20pulsera",
-  whatsappNumero: "595992363483",
-  /** El número tal como se muestra en pantalla. */
-  whatsappVisible: "0992 363 483",
+    "https://wa.me/595994320994?text=Hola%20Grit%2C%20quiero%20conseguir%20mi%20pulsera",
+  whatsappNumero: "595994320994",
+  /** El número tal como se muestra en pantalla — sin +595, siempre así. */
+  whatsappVisible: "0994320994",
   instagram: "https://instagram.com/grit.py",
   contacto: "mailto:hola@grit.py",
 } as const;
+
+/**
+ * Mensaje prellenado del botón "Enviar comprobante por WhatsApp" (checkout y
+ * /gracias). Singular/plural según la cantidad real de pulseras del pedido.
+ */
+export function mensajeComprobante(unidades: number): string {
+  const sustantivo = unidades === 1 ? "pulsera" : "pulseras";
+  return `¡Hola! 👋 Acabo de hacer un pedido de ${unidades} ${sustantivo} GRIT 🖤 y quiero enviar mi comprobante de transferencia.`;
+}

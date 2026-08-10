@@ -13,6 +13,7 @@ import ProductoOpiniones from "@/components/producto/ProductoOpiniones";
 import ProductoIncluye from "@/components/producto/ProductoIncluye";
 import ProductoRegalo from "@/components/producto/ProductoRegalo";
 import ProductoCTAFinal from "@/components/producto/ProductoCTAFinal";
+import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
 
 export const metadata: Metadata = {
   title: "Comprar Pulsera NFC GRIT",
@@ -61,6 +62,7 @@ export default function ProductoPage() {
         <ProductoCTAFinal />
       </main>
       <Footer variant="producto" />
+      <WhatsAppFloatButton />
     </CartRoot>
   );
 }
