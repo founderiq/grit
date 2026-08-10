@@ -8,7 +8,7 @@ import { datosDeItems } from "@/lib/meta-pixel";
 import { IconCheckCircle, IconShield } from "@/components/ui/ProductoIcons";
 import { getSupabaseAdmin, hayConfiguracionSupabase } from "@/lib/supabase-admin";
 import { esUuid } from "@/lib/pedidos";
-import { CHECKOUT, ENVIOS, GRACIAS, LINKS, fmtGs } from "@/lib/content";
+import { CHECKOUT, ENVIOS, GRACIAS, LINKS, fmtGs, mensajeComprobante } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Pedido registrado",
@@ -193,11 +193,9 @@ export default async function GraciasPage({
   // cliente — el pixel sólo recibe qué se compró, cuánto y el número de pedido.
   const pixel = datosDeItems(pedido.items);
 
-  const mensajeWhatsapp = encodeURIComponent(
-    `Hola Grit, acabo de hacer el pedido ${pedido.order_number} ` +
-      `a nombre de ${pedido.customer_name}, por un total de ${fmtGs(pedido.total)}. ` +
-      "Les adjunto el comprobante de la transferencia.",
-  );
+  // Misma fuente que usa el Pixel para `num_items`: pulseras reales del
+  // pedido ya guardado, resolviendo bundles con el catálogo.
+  const mensajeWhatsapp = encodeURIComponent(mensajeComprobante(pixel.unidades));
 
   return (
     <>

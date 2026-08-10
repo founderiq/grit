@@ -42,9 +42,9 @@ const MENSAJES_ERROR: Record<string, string> = {
   payload_invalido:
     "Revisá los datos del formulario: hay algo que no pudimos validar.",
   configuracion_incompleta:
-    "No pudimos registrar tu pedido en este momento. Escribinos por WhatsApp al 0992 363 483.",
+    "No pudimos registrar tu pedido en este momento. Escribinos por WhatsApp al 0994320994.",
   error_interno:
-    "No pudimos registrar tu pedido. Revisá tus datos o escribinos por WhatsApp al 0992 363 483.",
+    "No pudimos registrar tu pedido. Revisá tus datos o escribinos por WhatsApp al 0994320994.",
 };
 
 /**

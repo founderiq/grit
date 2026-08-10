@@ -8,6 +8,7 @@ import FePrimero from "@/components/FePrimero";
 import CTAFinal from "@/components/CTAFinal";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
+import WhatsAppFloatButton from "@/components/WhatsAppFloatButton";
 
 /**
  * Landing de Grit — una sola página, mobile-first.
@@ -28,6 +29,7 @@ export default function Home() {
         <FAQ />
       </main>
       <Footer />
+      <WhatsAppFloatButton />
     </>
   );
 }
