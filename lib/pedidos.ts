@@ -2,7 +2,8 @@
  * Validación y recálculo de pedidos, del lado del servidor.
  *
  * REGLA CENTRAL: del navegador solo se acepta **qué** quiere comprar el
- * cliente (pack, cantidad, extra, zona, VIP, método) y sus datos de contacto.
+ * cliente (pack, cantidad, extra, modelos, zona, VIP, método) y sus datos de
+ * contacto.
  * Ningún importe que venga en el request se usa jamás. Subtotal, ahorro,
  * envío, VIP, total y los precios de cada ítem se recalculan acá desde el
  * catálogo de `lib/content.ts`, con las mismas funciones que usa la interfaz.
@@ -15,9 +16,11 @@ import {
   EXTRA,
   PRODUCTO_BUNDLES,
   type BundleId,
+  type ModeloId,
   type ZonaId,
 } from "@/lib/content";
 import { QTY_MAX, QTY_MIN } from "@/lib/cart";
+import { esModeloId, unidadesDelPack } from "@/lib/modelos";
 import {
   totalesCheckout,
   validarContacto,
@@ -46,6 +49,13 @@ export type PedidoCalculado = {
   packId: BundleId;
   qty: number;
   extra: boolean;
+  /**
+   * Modelo de cada pulsera del pack, en orden. `null` solo si el navegador no
+   * los mandó (una pestaña abierta antes del deploy de modelos).
+   */
+  modelos: ModeloId[] | null;
+  /** Modelo de la pulsera extra. `null` sin extra o si no vino. */
+  modeloExtra: ModeloId | null;
   zona: ZonaId;
   vip: boolean;
   metodoPago: MetodoPago;
@@ -144,6 +154,37 @@ export function validarYCalcular(bruto: unknown): ResultadoValidacion {
   }
   const extra = extraBruto === true;
 
+  /* --- Modelos -----------------------------------------------------------
+     Un id del catálogo por pulsera del pack, en orden. Son opcionales para
+     no romper una pestaña abierta antes de que existieran: si no vienen, el
+     pedido se crea igual, sin modelos. Si vienen, se validan estrictamente:
+     un largo distinto del pack o un id desconocido se RECHAZA en lugar de
+     corregirse, porque el pedido diría algo que el cliente no eligió.
+     No tocan ningún importe.                                               */
+  let modelos: ModeloId[] | null = null;
+  if (bruto.modelos !== undefined && bruto.modelos !== null) {
+    const lista = bruto.modelos;
+    const largo = bundle ? unidadesDelPack(bundle.unidades, bundle.fijo, qty) : null;
+    if (!Array.isArray(lista) || !lista.every(esModeloId)) {
+      errores.push({ campo: "modelos", codigo: "modelo_invalido" });
+    } else if (largo !== null && lista.length !== largo) {
+      errores.push({ campo: "modelos", codigo: "largo_distinto_del_pack" });
+    } else {
+      modelos = [...lista];
+    }
+  }
+
+  // El modelo de la extra solo se mira si hay extra.
+  let modeloExtra: ModeloId | null = null;
+  const modeloExtraBruto = bruto.modeloExtra;
+  if (extra && modeloExtraBruto !== undefined && modeloExtraBruto !== null) {
+    if (esModeloId(modeloExtraBruto)) {
+      modeloExtra = modeloExtraBruto;
+    } else {
+      errores.push({ campo: "modeloExtra", codigo: "modelo_invalido" });
+    }
+  }
+
   /* --- Zona de envío ------------------------------------------------------ */
   const zona = bruto.zona;
   if (zona !== "asuncion" && zona !== "interior") {
@@ -220,6 +261,8 @@ export function validarYCalcular(bruto: unknown): ResultadoValidacion {
       packId: bundle!.id,
       qty,
       extra,
+      modelos,
+      modeloExtra,
       zona: zona as ZonaId,
       vip,
       metodoPago: metodoPago as MetodoPago,

@@ -10,12 +10,20 @@ import {
   ENVIOS,
   ENVIO_GRATIS_DESDE,
   PRODUCTO_BUNDLES,
+  MODELO_POR_DEFECTO,
   VIP,
   ZONA_POR_DEFECTO,
   type BundleId,
+  type ModeloId,
   type ZonaId,
 } from "@/lib/content";
 import { QTY_MAX, QTY_MIN, calcularTotales, getBundle } from "@/lib/cart";
+import {
+  ajustarModelos,
+  esModeloId,
+  modelosDesdeParam,
+  unidadesDelPack,
+} from "@/lib/modelos";
 
 /* ------------------------------------------------------------
    Pedido que entra al checkout
@@ -26,6 +34,13 @@ export type PedidoBase = {
   /** Solo tiene efecto en el pack de 1. */
   qty: number;
   extra: boolean;
+  /**
+   * Modelo de cada pulsera del pack. Opcional para no tocar a quien solo
+   * calcula importes; el checkout lo completa con `modelosDelPedido`.
+   */
+  modelos?: readonly ModeloId[];
+  /** Modelo de la pulsera extra. Solo cuenta si `extra`. */
+  modeloExtra?: ModeloId;
 };
 
 export const PEDIDO_POR_DEFECTO: PedidoBase = {
@@ -33,6 +48,29 @@ export const PEDIDO_POR_DEFECTO: PedidoBase = {
   qty: 1,
   extra: false,
 };
+
+/**
+ * Modelos del pedido, siempre del largo exacto del pack: lo que falte se
+ * completa en Negro y lo que sobre se descarta. Es lo que se muestra en el
+ * resumen y lo que viaja al servidor.
+ */
+export function modelosDelPedido(pedido: PedidoBase): {
+  modelos: ModeloId[];
+  modeloExtra: ModeloId | null;
+} {
+  const bundle = getBundle(pedido.packId);
+  return {
+    modelos: ajustarModelos(
+      pedido.modelos,
+      unidadesDelPack(bundle.unidades, bundle.fijo, pedido.qty),
+    ),
+    modeloExtra: pedido.extra
+      ? esModeloId(pedido.modeloExtra)
+        ? pedido.modeloExtra
+        : MODELO_POR_DEFECTO
+      : null,
+  };
+}
 
 const esBundleId = (v: unknown): v is BundleId =>
   v === "1" || v === "2" || v === "3";
@@ -57,7 +95,25 @@ export function pedidoDesdeParams(
       ? Math.min(QTY_MAX, Math.max(QTY_MIN, Number.isFinite(qtyCruda) ? qtyCruda : 1))
       : 1;
 
-  return { packId: pack, qty, extra: leer("extra") === "1" };
+  const extra = leer("extra") === "1";
+  const extraCrudo = leer("modeloExtra");
+  // `modelos=negro,azul,floral` — lo arma "Comprar ahora". Un link viejo sin
+  // el parámetro sigue funcionando: los modelos quedan en Negro.
+  const elegidos = modelosDelPedido({
+    packId: pack,
+    qty,
+    extra,
+    modelos: modelosDesdeParam(leer("modelos")),
+    modeloExtra: esModeloId(extraCrudo) ? extraCrudo : undefined,
+  });
+
+  return {
+    packId: pack,
+    qty,
+    extra,
+    modelos: elegidos.modelos,
+    modeloExtra: elegidos.modeloExtra ?? undefined,
+  };
 }
 
 /* ------------------------------------------------------------
@@ -269,6 +325,10 @@ export type SolicitudPedido = {
   packId: BundleId;
   qty: number;
   extra: boolean;
+  /** Un modelo por pulsera del pack, en orden. */
+  modelos: ModeloId[];
+  /** Modelo de la pulsera extra; solo se manda si `extra`. */
+  modeloExtra?: ModeloId;
   zona: ZonaId;
   vip: boolean;
   metodoPago: MetodoPago;

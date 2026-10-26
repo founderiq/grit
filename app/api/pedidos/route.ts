@@ -142,10 +142,15 @@ export async function POST(request: Request) {
       // servidor, no del navegador.
       p_units: p.unidades,
       p_items: p.items,
+      // Los modelos elegidos viven en `orders.metadata` (jsonb): no hace falta
+      // ninguna columna nueva ni tocar `create_order`. Si el navegador no los
+      // mandó, las claves no se escriben y el pedido queda como uno anterior.
       p_metadata: {
         origen: "checkout_web",
         unidades: p.unidades,
         envio_gratis: p.envioGratis,
+        ...(p.modelos ? { modelos: p.modelos } : {}),
+        ...(p.modeloExtra ? { modelo_extra: p.modeloExtra } : {}),
       },
     })
     .single<FilaCreateOrder>();
@@ -218,6 +223,8 @@ export async function POST(request: Request) {
           quantity: i.quantity,
           line_total: i.line_total,
         })),
+        modelos: p.modelos ?? [],
+        modeloExtra: p.modeloExtra,
         subtotal: p.subtotal,
         envio: p.envio,
         envioGratis: p.envioGratis,

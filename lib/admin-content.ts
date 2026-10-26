@@ -114,6 +114,11 @@ export const ADMIN = {
       entrega: "Estado de entrega",
       productos: "Productos",
       extra: "Extra",
+      cantidad: "Cantidad",
+      pulseras: (n: number) => (n === 1 ? "1 pulsera" : `${n} pulseras`),
+      modelos: "Modelos",
+      modeloExtra: "Extra",
+      sinModelos: "No registrado (pedido sin elección de modelos)",
     },
 
     finanzas: {

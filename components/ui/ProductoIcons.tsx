@@ -187,3 +187,21 @@ export function IconCopy({ className = "", width = 15 }: IconProps) {
     </svg>
   );
 }
+
+/** Selector de modelo: abre la lista de opciones. */
+export function IconChevronDown({ className = "", width = 16 }: IconProps) {
+  return (
+    <svg {...base} width={width} className={className} aria-hidden="true">
+      <path d="M6 9.5l6 6 6-6" />
+    </svg>
+  );
+}
+
+/** Tarjetas de "Tu pack incluye": se pueden ampliar. */
+export function IconExpand({ className = "", width = 16 }: IconProps) {
+  return (
+    <svg {...base} width={width} className={className} aria-hidden="true">
+      <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+    </svg>
+  );
+}

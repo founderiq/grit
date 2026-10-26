@@ -8,10 +8,13 @@ import {
   CARRITO,
   ENVIO_GRATIS_DESDE,
   EXTRA,
+  MODELO_POR_DEFECTO,
   PRODUCTO_BUNDLES,
   type BundleId,
+  type ModeloId,
   type ProductoBundle,
 } from "@/lib/content";
+import { ajustarModelos, esModeloId, unidadesDelPack } from "@/lib/modelos";
 
 /** Rango permitido para la cantidad del pack de 1. */
 export const QTY_MIN = 1;
@@ -83,6 +86,13 @@ export type CartState = {
   packQty: number;
   /** Pulsera promocional de 35% OFF. Booleano, nunca un contador. */
   hasExtra: boolean;
+  /**
+   * Modelo de cada pulsera del pack, en orden. Su largo es siempre el de las
+   * unidades del pack (vacío sin pack): lo garantiza el reducer.
+   */
+  modelos: ModeloId[];
+  /** Modelo de la pulsera extra promocional. Solo cuenta si `hasExtra`. */
+  modeloExtra: ModeloId;
   /** Visibilidad del drawer. No se persiste. */
   isOpen: boolean;
 };
@@ -91,8 +101,17 @@ export const ESTADO_INICIAL: CartState = {
   packId: null,
   packQty: 1,
   hasExtra: false,
+  modelos: [],
+  modeloExtra: MODELO_POR_DEFECTO,
   isOpen: false,
 };
+
+/** Largo que debe tener `modelos` para un pack y una cantidad. */
+function largoModelos(packId: BundleId | null, packQty: number): number {
+  if (packId === null) return 0;
+  const bundle = getBundle(packId);
+  return unidadesDelPack(bundle.unidades, bundle.fijo, packQty);
+}
 
 /** El carrito está vacío cuando no hay ni pack ni pulsera extra. */
 export const estaVacio = (s: CartState) => s.packId === null && !s.hasExtra;
@@ -150,12 +169,13 @@ export function progresoEnvio(unidades: number): ProgresoEnvio {
 
 export type CartAction =
   | { type: "hidratar"; estado: Partial<CartState> }
-  | { type: "agregarBundle"; id: BundleId }
+  | { type: "agregarBundle"; id: BundleId; modelos?: readonly ModeloId[] }
   | { type: "quitarBundle" }
   | { type: "subirCantidad" }
   | { type: "bajarCantidad" }
   | { type: "agregarExtra" }
   | { type: "quitarExtra" }
+  | { type: "cambiarModeloExtra"; modelo: ModeloId }
   | { type: "abrir" }
   | { type: "cerrar" };
 
@@ -171,36 +191,68 @@ export function cartReducer(estado: CartState, accion: CartAction): CartState {
     case "hidratar": {
       const packId = accion.estado.packId ?? null;
       const fijo = packId !== null && packId !== "1";
+      const packQty = fijo ? 1 : clampQty(accion.estado.packQty ?? 1);
+      const modeloExtra = accion.estado.modeloExtra;
       return {
         ...estado,
         packId,
-        packQty: fijo ? 1 : clampQty(accion.estado.packQty ?? 1),
+        packQty,
         hasExtra: accion.estado.hasExtra ?? false,
+        // Un carrito guardado antes de los modelos no trae `modelos`: cada
+        // pulsera vuelve como Negro, que era el único modelo hasta entonces.
+        modelos: ajustarModelos(accion.estado.modelos, largoModelos(packId, packQty)),
+        modeloExtra: esModeloId(modeloExtra) ? modeloExtra : MODELO_POR_DEFECTO,
       };
     }
 
     case "agregarBundle":
       // Agregar siempre reemplaza el pack y reinicia la cantidad, y abre el
-      // drawer: es el contrato de "Agregar al carrito".
-      return { ...estado, packId: accion.id, packQty: 1, isOpen: true };
+      // drawer: es el contrato de "Agregar al carrito". Los modelos elegidos
+      // en /producto viajan con el pack.
+      return {
+        ...estado,
+        packId: accion.id,
+        packQty: 1,
+        modelos: ajustarModelos(accion.modelos, largoModelos(accion.id, 1)),
+        isOpen: true,
+      };
 
     case "quitarBundle":
-      return { ...estado, packId: null, packQty: 1 };
+      return { ...estado, packId: null, packQty: 1, modelos: [] };
 
-    case "subirCantidad":
+    // El stepper del pack de 1 suma o quita pulseras al final: las que ya
+    // tenían modelo lo conservan y la nueva nace en Negro.
+    case "subirCantidad": {
       if (estado.packId !== "1") return estado;
-      return { ...estado, packQty: clampQty(estado.packQty + 1) };
+      const packQty = clampQty(estado.packQty + 1);
+      return {
+        ...estado,
+        packQty,
+        modelos: ajustarModelos(estado.modelos, largoModelos("1", packQty)),
+      };
+    }
 
-    case "bajarCantidad":
+    case "bajarCantidad": {
       if (estado.packId !== "1") return estado;
-      return { ...estado, packQty: clampQty(estado.packQty - 1) };
+      const packQty = clampQty(estado.packQty - 1);
+      return {
+        ...estado,
+        packQty,
+        modelos: ajustarModelos(estado.modelos, largoModelos("1", packQty)),
+      };
+    }
 
     case "agregarExtra":
       // Idempotente por diseño: no existe una segunda pulsera extra.
       return estado.hasExtra ? estado : { ...estado, hasExtra: true };
 
     case "quitarExtra":
-      return { ...estado, hasExtra: false };
+      // Volver a agregarla arranca otra vez en Negro, como toda pulsera nueva.
+      return { ...estado, hasExtra: false, modeloExtra: MODELO_POR_DEFECTO };
+
+    case "cambiarModeloExtra":
+      if (!estado.hasExtra || !esModeloId(accion.modelo)) return estado;
+      return { ...estado, modeloExtra: accion.modelo };
 
     case "abrir":
       return { ...estado, isOpen: true };
@@ -219,7 +271,10 @@ export function cartReducer(estado: CartState, accion: CartAction): CartState {
 
 export const CART_STORAGE_KEY = "grit:cart:v1";
 
-type CartPersistido = Pick<CartState, "packId" | "packQty" | "hasExtra">;
+type CartPersistido = Pick<
+  CartState,
+  "packId" | "packQty" | "hasExtra" | "modelos" | "modeloExtra"
+>;
 
 /** Lee el carrito guardado. Devuelve null si no hay nada válido. */
 export function leerCarrito(): CartPersistido | null {
@@ -230,10 +285,14 @@ export function leerCarrito(): CartPersistido | null {
     const d = JSON.parse(crudo) as Partial<CartPersistido>;
     const packId =
       d.packId === "1" || d.packId === "2" || d.packId === "3" ? d.packId : null;
+    const packQty = clampQty(Number(d.packQty) || 1);
     return {
       packId,
-      packQty: clampQty(Number(d.packQty) || 1),
+      packQty,
       hasExtra: d.hasExtra === true,
+      // Ausente en carritos guardados antes de los modelos: se completa en Negro.
+      modelos: ajustarModelos(d.modelos, largoModelos(packId, packQty)),
+      modeloExtra: esModeloId(d.modeloExtra) ? d.modeloExtra : MODELO_POR_DEFECTO,
     };
   } catch {
     // localStorage bloqueado o JSON corrupto: se arranca con el carrito vacío.
@@ -249,6 +308,8 @@ export function guardarCarrito(s: CartState): void {
       packId: s.packId,
       packQty: s.packQty,
       hasExtra: s.hasExtra,
+      modelos: s.modelos,
+      modeloExtra: s.modeloExtra,
     };
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(datos));
   } catch {

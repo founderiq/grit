@@ -13,6 +13,7 @@
  */
 import "server-only";
 import { ENVIOS, VIP, fmtGs } from "@/lib/content";
+import { nombreModelo, textoModelos } from "@/lib/modelos";
 
 const API = "https://api.telegram.org";
 
@@ -38,6 +39,10 @@ export type PedidoNotificacion = {
     ubicacion?: string | null;
   };
   items: ItemNotificacion[];
+  /** Modelos del pack en orden. Vacío u omitido si el pedido no los trae. */
+  modelos?: readonly string[];
+  /** Modelo de la pulsera extra, si la hay. */
+  modeloExtra?: string | null;
   subtotal: number;
   envio: number;
   envioGratis: boolean;
@@ -125,6 +130,15 @@ export function construirMensaje(p: PedidoNotificacion): string {
     lineas.push(
       `• ${limpiar(item.product_name, 80)}${cantidad} — ${fmtGs(item.line_total)}`,
     );
+  }
+
+  // Modelos: el servidor ya los validó contra el catálogo, pero igual pasan
+  // por `limpiar` como cualquier otro dato que vino del navegador.
+  if (p.modelos && p.modelos.length > 0) {
+    lineas.push(`Modelos: ${limpiar(textoModelos(p.modelos), 200)}`);
+  }
+  if (p.modeloExtra) {
+    lineas.push(`Modelo extra: ${limpiar(nombreModelo(p.modeloExtra), 40)}`);
   }
 
   lineas.push(

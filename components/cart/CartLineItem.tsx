@@ -4,6 +4,7 @@ import Image from "next/image";
 import { IconMinus, IconPlus } from "@/components/ui/ProductoIcons";
 import { CARRITO, fmtGs, type ProductoBundle } from "@/lib/content";
 import { QTY_MAX, QTY_MIN } from "@/lib/cart";
+import { textoModelos } from "@/lib/modelos";
 
 /**
  * Fila del bundle en el carrito.
@@ -15,6 +16,8 @@ import { QTY_MAX, QTY_MIN } from "@/lib/cart";
 type CartLineItemProps = {
   bundle: ProductoBundle;
   cantidad: number;
+  /** Modelo de cada pulsera del pack, en orden. */
+  modelos: readonly string[];
   onSubir: () => void;
   onBajar: () => void;
   onQuitar: () => void;
@@ -23,6 +26,7 @@ type CartLineItemProps = {
 export default function CartLineItem({
   bundle,
   cantidad,
+  modelos,
   onSubir,
   onBajar,
   onQuitar,
@@ -48,6 +52,11 @@ export default function CartLineItem({
             <p className="m-0 font-archivo text-[13.5px] font-bold leading-[1.25] text-tinta lg:text-[14.5px]">
               {bundle.nombreLargo}
             </p>
+            {modelos.length > 0 && (
+              <p className="m-0 mt-1 text-[12px] leading-[1.4] text-gris-tinta lg:text-[12.5px]">
+                {textoModelos(modelos)}
+              </p>
+            )}
             <p className="m-0 mt-1 hidden font-mono text-[9.5px] uppercase tracking-[0.08em] text-gris-oscuro lg:block">
               {CARRITO.itemMeta}
             </p>
