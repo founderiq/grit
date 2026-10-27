@@ -123,3 +123,24 @@ export function modelosDesdeParam(v: string | null | undefined): ModeloId[] {
 
 export const modelosAParam = (modelos: readonly ModeloId[]): string =>
   modelos.join(",");
+
+/* ------------------------------------------------------------
+   Agrupado para preparar el pedido
+   ------------------------------------------------------------ */
+
+export type GrupoModelo = { id: string; nombre: string; cantidad: number };
+
+/**
+ * `["negro", "negro", "rosa"]` → `[{ Negro × 2 }, { Rosa × 1 }]`. Respeta el
+ * orden en que aparece cada modelo por primera vez. Es lo que necesita quien
+ * arma el pedido: cuántas pulseras de cada color, no la posición de cada una.
+ */
+export function agruparModelos(modelos: readonly string[]): GrupoModelo[] {
+  const grupos: GrupoModelo[] = [];
+  for (const id of modelos) {
+    const existente = grupos.find((g) => g.id === id);
+    if (existente) existente.cantidad += 1;
+    else grupos.push({ id, nombre: nombreModelo(id), cantidad: 1 });
+  }
+  return grupos;
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  agruparModelos,
   ajustarModelos,
   getModelo,
   modelosAParam,
@@ -227,5 +228,43 @@ describe("modelosDeMetadata — pedidos guardados", () => {
       extra: null,
     });
     expect(modelosDeMetadata({ modelos: "azul" })).toEqual({ pack: [], extra: null });
+  });
+});
+
+describe("admin — modelos elegidos agrupados desde orders.metadata", () => {
+  const grupos = (metadata: unknown) => {
+    const m = modelosDeMetadata(metadata);
+    return {
+      pack: agruparModelos(m.pack).map((g) => `${g.cantidad} × ${g.nombre}`),
+      extra: agruparModelos(m.extra ? [m.extra] : []).map((g) => `${g.cantidad} × ${g.nombre}`),
+    };
+  };
+
+  it("1. tres modelos diferentes", () => {
+    expect(grupos({ origen: "checkout_web", modelos: ["verde", "rosa", "azul"] })).toEqual({
+      pack: ["1 × Verde", "1 × Rosa", "1 × Azul"],
+      extra: [],
+    });
+  });
+
+  it("2. dos iguales y uno distinto se agrupan, en orden de aparición", () => {
+    expect(grupos({ modelos: ["negro", "rosa", "negro"] }).pack).toEqual([
+      "2 × Negro",
+      "1 × Rosa",
+    ]);
+  });
+
+  it("3. pedido antiguo sin modelos: nada que mostrar", () => {
+    expect(grupos({ origen: "checkout_web", unidades: 2, envio_gratis: false })).toEqual({
+      pack: [],
+      extra: [],
+    });
+    expect(grupos(null)).toEqual({ pack: [], extra: [] });
+  });
+
+  it("4. la pulsera extra queda separada del pack", () => {
+    expect(
+      grupos({ modelos: ["negro", "negro", "rosa"], modelo_extra: "azul" }),
+    ).toEqual({ pack: ["2 × Negro", "1 × Rosa"], extra: ["1 × Azul"] });
   });
 });

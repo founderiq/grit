@@ -66,7 +66,7 @@ export const CONTENIDO_TIPOS = [
 export const PRODUCT_SPECS = [
   { label: "Material", valor: "Tejido elástico premium, tacto suave" },
   { label: "Símbolo", valor: "Cruz bordada en hilo, no estampada" },
-  { label: "Color y talle", valor: "Negro, talle único elástico" },
+  { label: "Colores", valor: "Negro, Azul, Verde, Gris, Rosa y Floral · Talle único elástico" },
   { label: "Uso", valor: "Entreno, agua, rutina diaria" },
   { label: "Precio", valor: "115.000 Gs" },
 ] as const;
