@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { CARRITO, CHECKOUT, ENVIOS, EXTRA, fmtGs, type ZonaId } from "@/lib/content";
 import type { TotalesCheckout } from "@/lib/checkout";
+import { nombreModelo, textoModelos } from "@/lib/modelos";
 
 /**
  * Resumen del pedido. Se recalcula en vivo al cambiar la zona o el VIP.
@@ -12,6 +13,10 @@ import type { TotalesCheckout } from "@/lib/checkout";
  */
 type OrderSummaryProps = {
   totales: TotalesCheckout;
+  /** Modelo de cada pulsera del pack, en orden. */
+  modelos: readonly string[];
+  /** Modelo de la pulsera extra, o `null` si no hay extra. */
+  modeloExtra: string | null;
   zona: ZonaId;
   vip: boolean;
   compacto?: boolean;
@@ -24,6 +29,8 @@ type OrderSummaryProps = {
 
 export default function OrderSummary({
   totales,
+  modelos,
+  modeloExtra,
   zona,
   vip,
   compacto = false,
@@ -47,8 +54,13 @@ export default function OrderSummary({
           sizes="48px"
           className="h-12 w-12 flex-shrink-0 rounded-image object-cover"
         />
-        <span className="min-w-0 flex-1 text-[13px] font-semibold text-tinta">
-          {nombre}
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-tinta">{nombre}</span>
+          {modelos.length > 0 && (
+            <span className="mt-[2px] block text-[12px] leading-[1.4] text-gris-tinta">
+              {textoModelos(modelos)}
+            </span>
+          )}
         </span>
         <span className="flex-shrink-0 font-archivo text-[16px] font-extrabold text-tinta">
           {fmtGs(totales.total)}
@@ -78,6 +90,11 @@ export default function OrderSummary({
           <p className="m-0 text-[14px] font-semibold leading-[1.3] text-tinta">
             {nombre}
           </p>
+          {modelos.length > 0 && (
+            <p className="m-0 mt-1 text-[12.5px] leading-[1.4] text-gris-tinta">
+              {textoModelos(modelos)}
+            </p>
+          )}
           <p className="m-0 mt-1 font-mono text-[9px] uppercase tracking-[0.08em] text-gris-oscuro">
             {CHECKOUT.resumen.itemMeta}
           </p>
@@ -97,7 +114,10 @@ export default function OrderSummary({
 
         {totales.extra && (
           <div className="flex items-baseline justify-between">
-            <dt className="text-gris-oscuro">{EXTRA.nombre}</dt>
+            <dt className="text-gris-oscuro">
+              {EXTRA.nombre}
+              {modeloExtra && ` · ${nombreModelo(modeloExtra)}`}
+            </dt>
             <dd className="m-0 font-semibold text-tinta">
               {fmtGs(EXTRA.precio)}
             </dd>

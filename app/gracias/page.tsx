@@ -8,6 +8,7 @@ import { datosDeItems } from "@/lib/meta-pixel";
 import { IconCheckCircle, IconShield } from "@/components/ui/ProductoIcons";
 import { getSupabaseAdmin, hayConfiguracionSupabase } from "@/lib/supabase-admin";
 import { esUuid } from "@/lib/pedidos";
+import { modelosDeMetadata, nombreModelo, textoModelos } from "@/lib/modelos";
 import { CHECKOUT, ENVIOS, GRACIAS, LINKS, fmtGs, mensajeComprobante } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ type Pedido = {
   shipping_zone: string;
   shipping_cost: number;
   vip_shipping: boolean;
+  /** Solo se lee para mostrar los modelos elegidos. */
+  metadata: unknown;
   items: {
     sku: string;
     bundle_id: string | null;
@@ -53,7 +56,7 @@ async function buscarPedido(token: string): Promise<Pedido | null> {
     .from("orders")
     .select(
       "order_number, customer_name, total, payment_method, payment_status, " +
-        "shipping_zone, shipping_cost, vip_shipping, " +
+        "shipping_zone, shipping_cost, vip_shipping, metadata, " +
         "order_items ( sku, bundle_id, product_name, quantity, line_total, is_promotional )",
     )
     .eq("confirmation_token", token)
@@ -197,6 +200,14 @@ export default async function GraciasPage({
   // pedido ya guardado, resolviendo bundles con el catálogo.
   const mensajeWhatsapp = encodeURIComponent(mensajeComprobante(pixel.unidades));
 
+  // Modelos elegidos, desde el pedido guardado. Un pedido sin modelos (manual
+  // o anterior a esta función) simplemente no muestra la línea.
+  const modelos = modelosDeMetadata(pedido.metadata);
+  const modelosDeItem = (item: Pedido["items"][number]): string | null => {
+    if (item.is_promotional) return modelos.extra ? nombreModelo(modelos.extra) : null;
+    return item.bundle_id && modelos.pack.length > 0 ? textoModelos(modelos.pack) : null;
+  };
+
   return (
     <>
       {/* Limpia el carrito recién ahora, con el pedido ya confirmado. */}
@@ -273,27 +284,35 @@ export default async function GraciasPage({
               {GRACIAS.etiquetas.productos}
             </h2>
             <ul className="m-0 list-none rounded-card border-hairline border-borde-claro bg-superficie-clara p-0">
-              {pedido.items.map((item, i) => (
-                <li
-                  key={`${item.product_name}-${i}`}
-                  className="flex items-center justify-between gap-3 border-b border-borde-claro px-4 py-[14px] last:border-b-0"
-                >
-                  <span className="min-w-0 text-[13.5px] text-tinta lg:text-[14px]">
-                    {item.product_name}
-                    {item.quantity > 1 && (
-                      <span className="text-gris-oscuro"> × {item.quantity}</span>
-                    )}
-                    {item.is_promotional && (
-                      <span className="ml-2 inline-flex rounded-pill bg-tierra-oscura px-2 py-[3px] font-mono text-[8px] uppercase tracking-[0.08em] text-hueso">
-                        35% OFF
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex-shrink-0 font-archivo text-[13.5px] font-extrabold text-tinta lg:text-[14px]">
-                    {fmtGs(item.line_total)}
-                  </span>
-                </li>
-              ))}
+              {pedido.items.map((item, i) => {
+                const textoModelo = modelosDeItem(item);
+                return (
+                  <li
+                    key={`${item.product_name}-${i}`}
+                    className="flex items-center justify-between gap-3 border-b border-borde-claro px-4 py-[14px] last:border-b-0"
+                  >
+                    <span className="min-w-0 text-[13.5px] text-tinta lg:text-[14px]">
+                      {item.product_name}
+                      {item.quantity > 1 && (
+                        <span className="text-gris-oscuro"> × {item.quantity}</span>
+                      )}
+                      {item.is_promotional && (
+                        <span className="ml-2 inline-flex rounded-pill bg-tierra-oscura px-2 py-[3px] font-mono text-[8px] uppercase tracking-[0.08em] text-hueso">
+                          35% OFF
+                        </span>
+                      )}
+                      {textoModelo && (
+                        <span className="mt-[3px] block text-[12.5px] text-gris-tinta lg:text-[13px]">
+                          {textoModelo}
+                        </span>
+                      )}
+                    </span>
+                    <span className="flex-shrink-0 font-archivo text-[13.5px] font-extrabold text-tinta lg:text-[14px]">
+                      {fmtGs(item.line_total)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
 

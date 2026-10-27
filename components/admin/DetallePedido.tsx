@@ -2,6 +2,7 @@
 
 import {
   ETIQUETA_ORIGEN,
+  contarPulseras,
   enlaceWhatsapp,
   fmtFechaCorta,
   fmtFechaHora,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/admin-formato";
 import { resumenPedido } from "@/lib/admin-mutaciones";
 import { ADMIN } from "@/lib/admin-content";
+import { agruparModelos } from "@/lib/modelos";
 import type { AjusteDetalle, PedidoDetalle } from "@/lib/admin-tipos";
 import BotonArchivar from "@/components/admin/BotonArchivar";
 import FormularioAjuste from "@/components/admin/FormularioAjuste";
@@ -84,7 +86,7 @@ export default function DetallePedido({
           <PildoraEntrega estado={p.orderStatus} />
         </Dato>
 
-        {/* Los productos salen de order_items: no se asume ningún modelo. */}
+        {/* Los productos salen de order_items; los modelos, de orders.metadata. */}
         <div className="mt-1 border-t border-borde-claro pt-3">
           <p className="m-0 font-mono text-[9px] uppercase tracking-[0.1em] text-gris-oscuro">
             {ADMIN.detalle.pedido.productos}
@@ -104,6 +106,19 @@ export default function DetallePedido({
                   <span className="mt-[2px] block text-[11.5px] text-gris-oscuro">
                     {fmtNumero(i.quantity)} × {fmtGs(i.unitPrice)}
                   </span>
+                  {/* El pack y la pulsera extra se muestran por separado:
+                      comercialmente son ítems distintos. */}
+                  {i.promocional ? (
+                    <ModelosDelItem
+                      titulo={ADMIN.detalle.pedido.pulseraExtra}
+                      modelos={p.modeloExtra ? [p.modeloExtra] : []}
+                    />
+                  ) : (
+                    <ModelosDelItem
+                      titulo={ADMIN.detalle.pedido.modelosElegidos}
+                      modelos={p.modelos}
+                    />
+                  )}
                 </span>
                 <span className="shrink-0 text-[13px] font-semibold tabular-nums text-tinta">
                   {fmtGs(i.lineTotal)}
@@ -112,6 +127,8 @@ export default function DetallePedido({
             ))}
           </ul>
         </div>
+
+        <Cantidad p={p} />
       </Bloque>
 
       <ResumenFinanciero p={p} />
@@ -219,6 +236,54 @@ function Ubicacion({ url }: { url: string | null }) {
     >
       {ADMIN.detalle.cliente.abrirUbicacion}
     </a>
+  );
+}
+
+/**
+ * Cantidad real de pulseras del pedido. Misma regla que la columna "Cantidad"
+ * del listado.
+ */
+function Cantidad({ p }: { p: PedidoDetalle }) {
+  const pulseras = contarPulseras(
+    p.items.map((i) => ({
+      product_name: i.productName,
+      quantity: i.quantity,
+      bundle_id: i.bundleId,
+    })),
+  );
+
+  return (
+    <div className="border-t border-borde-claro pt-3">
+      <Dato etiqueta={ADMIN.detalle.pedido.cantidad}>
+        {ADMIN.detalle.pedido.pulseras(pulseras)}
+      </Dato>
+    </div>
+  );
+}
+
+/**
+ * Colores a preparar para un ítem, agrupados: "2 × Negro", "1 × Rosa". Salen
+ * de `orders.metadata`; un pedido sin modelos (anterior a la elección de
+ * modelos o manual) no muestra nada.
+ */
+function ModelosDelItem({ titulo, modelos }: { titulo: string; modelos: readonly string[] }) {
+  const grupos = agruparModelos(modelos);
+  if (grupos.length === 0) return null;
+
+  return (
+    <span className="mt-[10px] block rounded-strip border-hairline border-borde-claro bg-hueso px-3 py-[9px]">
+      <span className="block font-mono text-[9px] uppercase tracking-[0.1em] text-gris-oscuro">
+        {titulo}
+      </span>
+      <span className="mt-[6px] block space-y-[3px]">
+        {grupos.map((g) => (
+          <span key={g.id} className="block text-[13px] font-semibold leading-[1.35] text-tinta">
+            <span className="tabular-nums text-gris-oscuro">{fmtNumero(g.cantidad)} ×</span>{" "}
+            {g.nombre}
+          </span>
+        ))}
+      </span>
+    </span>
   );
 }
 

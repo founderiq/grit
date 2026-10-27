@@ -3,6 +3,7 @@ import { ETIQUETA_ORIGEN, fmtFechaCorta, fmtGs, fmtNumero } from "@/lib/admin-fo
 import type { FiltrosPedidos } from "@/lib/admin-filtros";
 import type { Rango } from "@/lib/admin-rango";
 import { ADMIN } from "@/lib/admin-content";
+import { nombreModelo, textoModelos } from "@/lib/modelos";
 import Paginacion from "@/components/admin/Paginacion";
 import FilaPedido, { BotonDetalle } from "@/components/admin/FilaPedido";
 import {
@@ -130,6 +131,16 @@ function Fila({
         ) : (
           <span className="text-gris-oscuro">—</span>
         )}
+        {/* Modelos elegidos, desde orders.metadata. Los pedidos sin modelos
+            (anteriores o manuales) no muestran esta línea. */}
+        {(pedido.modelos.length > 0 || pedido.modeloExtra) && (
+          <span
+            className="mt-[2px] block max-w-[260px] text-[11.5px] leading-[1.35] text-gris-oscuro"
+            title={textoModelosFila(pedido)}
+          >
+            {textoModelosFila(pedido)}
+          </span>
+        )}
       </td>
 
       <td className={`${celda} whitespace-nowrap tabular-nums font-semibold`}>
@@ -152,4 +163,14 @@ function Fila({
       </td>
     </FilaPedido>
   );
+}
+
+/** "Rosa · Negro · Extra: Verde" — los modelos del pack y, si la hay, la extra. */
+function textoModelosFila(pedido: PedidoFila): string {
+  return [
+    pedido.modelos.length > 0 ? textoModelos(pedido.modelos) : null,
+    pedido.modeloExtra ? `Extra: ${nombreModelo(pedido.modeloExtra)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

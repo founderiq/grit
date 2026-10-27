@@ -34,6 +34,7 @@ import {
 } from "@/lib/admin-formato";
 import { POR_PAGINA, type FiltrosPedidos } from "@/lib/admin-filtros";
 import type { Rango } from "@/lib/admin-rango";
+import { modelosDeMetadata } from "@/lib/modelos";
 import {
   COSTOS_POR_DEFECTO,
   type AdSpendFila,
@@ -157,6 +158,10 @@ export type PedidoFila = {
   whatsapp: string;
   pulseras: number;
   productos: string[];
+  /** Modelos del pack (ids). Vacío en pedidos sin elección de modelos. */
+  modelos: string[];
+  /** Modelo de la pulsera extra (id), si la hay. */
+  modeloExtra: string | null;
   total: number;
   paymentStatus: string;
   orderStatus: string;
@@ -183,6 +188,7 @@ type FilaCruda = {
   sale_date: string | null;
   source: string;
   archived_at: string | null;
+  metadata: unknown;
   order_items: ItemPedidoAdmin[] | null;
 };
 
@@ -211,7 +217,7 @@ export async function obtenerPedidos(
       .select(
         "id, order_number, customer_name, customer_whatsapp, total, " +
           "extra_revenue_total, payment_status, order_status, sale_date, source, " +
-          "archived_at, order_items ( product_name, quantity, bundle_id )",
+          "archived_at, metadata, order_items ( product_name, quantity, bundle_id )",
         { count: "exact" },
       )
       .order("sale_date", { ascending: false })
@@ -247,6 +253,8 @@ export async function obtenerPedidos(
       whatsapp: f.customer_whatsapp,
       pulseras: contarPulseras(f.order_items),
       productos: nombresProductos(f.order_items),
+      modelos: modelosDeMetadata(f.metadata).pack,
+      modeloExtra: modelosDeMetadata(f.metadata).extra,
       // Mismo criterio que el ingreso de las métricas: lo facturado más los
       // ajustes que suman.
       total: (f.total ?? 0) + (f.extra_revenue_total ?? 0),
@@ -411,7 +419,7 @@ export async function obtenerPedido(
           "shipping_zone, shipping_cost, customer_free_shipping, vip_shipping, vip_shipping_cost, " +
           "subtotal, discount_amount, total, " +
           "product_cost_total, logistics_cost, extra_revenue_total, extra_cost_total, " +
-          "internal_notes, archived_at, " +
+          "internal_notes, archived_at, metadata, " +
           "order_items ( id, sku, product_name, bundle_id, quantity, unit_price, line_total, is_promotional ), " +
           "order_adjustments ( id, description, revenue_amount, cost_amount, created_at, created_by )",
       )
@@ -460,6 +468,10 @@ export async function obtenerPedido(
       ajustesCrudos.map((a) => a.created_by).filter((v): v is string => Boolean(v)),
     );
 
+    // Modelos elegidos, desde `orders.metadata`. Tolera pedidos sin modelos
+    // (anteriores a la función o manuales) y datos rotos.
+    const modelosGuardados = modelosDeMetadata(o.metadata);
+
     return {
       ok: true,
       datos: {
@@ -507,6 +519,9 @@ export async function obtenerPedido(
           lineTotal: num(i.line_total),
           promocional: i.is_promotional === true,
         })),
+
+        modelos: modelosGuardados.pack,
+        modeloExtra: modelosGuardados.extra,
 
         ajustes: ajustesCrudos.map((a) => ({
           id: a.id,

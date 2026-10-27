@@ -151,6 +151,7 @@ export default function CartDrawer() {
                 <CartLineItem
                   bundle={bundle}
                   cantidad={estado.packQty}
+                  modelos={estado.modelos}
                   onSubir={cart.subirCantidad}
                   onBajar={cart.bajarCantidad}
                   onQuitar={cart.quitarBundle}
@@ -158,7 +159,11 @@ export default function CartDrawer() {
               )}
 
               {estado.hasExtra ? (
-                <CartExtraItem onQuitar={cart.quitarExtra} />
+                <CartExtraItem
+                  modelo={estado.modeloExtra}
+                  onCambiarModelo={cart.cambiarModeloExtra}
+                  onQuitar={cart.quitarExtra}
+                />
               ) : (
                 <CartUpsell onAgregar={agregarExtra} />
               )}

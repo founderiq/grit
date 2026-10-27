@@ -324,3 +324,55 @@ describe("contrato del endpoint sin cambios", () => {
     );
   });
 });
+
+describe("modelos del pedido", () => {
+  it("se guardan en orders.metadata, sin tocar ítems ni importes", async () => {
+    single.mockResolvedValue(filaCreada());
+
+    await pedir({
+      ...CUERPO_OK,
+      packId: "3",
+      extra: true,
+      modelos: ["negro", "azul", "floral"],
+      modeloExtra: "rosa",
+    });
+
+    const enviado = rpcMock.mock.calls[0]![1];
+    expect(enviado.p_metadata).toEqual({
+      origen: "checkout_web",
+      unidades: 4,
+      envio_gratis: true,
+      modelos: ["negro", "azul", "floral"],
+      modelo_extra: "rosa",
+    });
+    // Los ítems siguen siendo el pack y la extra, como siempre.
+    expect(enviado.p_items.map((i: { sku: string }) => i.sku)).toEqual([
+      "pack-3",
+      "pulsera-extra",
+    ]);
+
+    const texto = JSON.parse(fetchMock.mock.calls[0]![1].body).text as string;
+    expect(texto).toContain("Modelos: Negro · Azul · Floral");
+    expect(texto).toContain("Modelo extra: Rosa");
+  });
+
+  it("sin modelos (pestaña vieja) el metadata queda como antes", async () => {
+    single.mockResolvedValue(filaCreada());
+    await pedir(CUERPO_OK);
+
+    const enviado = rpcMock.mock.calls[0]![1];
+    expect(enviado.p_metadata).toEqual({
+      origen: "checkout_web",
+      unidades: 2,
+      envio_gratis: false,
+    });
+    const texto = JSON.parse(fetchMock.mock.calls[0]![1].body).text as string;
+    expect(texto).not.toContain("Modelos:");
+  });
+
+  it("modelos inválidos → 400 y no se crea nada", async () => {
+    const res = await pedir({ ...CUERPO_OK, packId: "2", modelos: ["azul"] });
+    expect(res.status).toBe(400);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+});

@@ -294,3 +294,49 @@ describe("esUuid — el guard que usa /gracias", () => {
     expect(esUuid("3f1a6c8e-2b4d-4a7f-9c1e-5d8a0b6f2e34' or '1'='1")).toBe(false);
   });
 });
+
+describe("modelos del pedido", () => {
+  it("caso A: pack de 1 en Azul", () => {
+    const p = calcular(base({ packId: "1", modelos: ["azul"] }));
+    expect(p.modelos).toEqual(["azul"]);
+  });
+
+  it("caso C: pack de 3 Verde, Rosa, Azul — sin tocar importes", () => {
+    const negro = calcular(base({ packId: "3", modelos: ["negro", "negro", "negro"] }));
+    const p = calcular(base({ packId: "3", modelos: ["verde", "rosa", "azul"] }));
+    expect(p.modelos).toEqual(["verde", "rosa", "azul"]);
+    expect(p.total).toBe(negro.total);
+    expect(p.subtotal).toBe(negro.subtotal);
+    expect(p.items).toEqual(negro.items);
+  });
+
+  it("pack de 1 × 3 lleva tres modelos", () => {
+    const p = calcular(base({ packId: "1", qty: 3, modelos: ["gris", "gris", "rosa"] }));
+    expect(p.modelos).toEqual(["gris", "gris", "rosa"]);
+  });
+
+  it("un cliente viejo sin modelos sigue pudiendo comprar", () => {
+    const p = calcular(base({ packId: "2" }));
+    expect(p.modelos).toBeNull();
+    expect(p.modeloExtra).toBeNull();
+  });
+
+  it("rechaza un largo distinto del pack", () => {
+    expect(camposConError(base({ packId: "2", modelos: ["azul"] }))).toContain("modelos");
+    expect(camposConError(base({ packId: "1", modelos: ["azul", "rosa"] }))).toContain("modelos");
+  });
+
+  it("rechaza ids desconocidos o tipos raros", () => {
+    expect(camposConError(base({ packId: "1", modelos: ["violeta"] }))).toContain("modelos");
+    expect(camposConError(base({ packId: "1", modelos: "azul" }))).toContain("modelos");
+    expect(camposConError(base({ packId: "1", modelos: [{ id: "azul" }] }))).toContain("modelos");
+  });
+
+  it("la extra: se guarda solo si hay extra, y se valida", () => {
+    expect(calcular(base({ extra: true, modeloExtra: "rosa" })).modeloExtra).toBe("rosa");
+    expect(calcular(base({ extra: false, modeloExtra: "rosa" })).modeloExtra).toBeNull();
+    expect(camposConError(base({ extra: true, modeloExtra: "violeta" }))).toContain(
+      "modeloExtra",
+    );
+  });
+});

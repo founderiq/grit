@@ -9,6 +9,7 @@ import {
   CAMPOS_ORDEN,
   PEDIDO_POR_DEFECTO,
   ZONA_POR_DEFECTO,
+  modelosDelPedido,
   pedidoDesdeParams,
   submitOrder,
   telefonoNormalizado,
@@ -79,6 +80,8 @@ export default function CheckoutClient() {
         packId: estado.packId,
         qty: estado.packQty,
         extra: estado.hasExtra,
+        modelos: estado.modelos,
+        modeloExtra: estado.modeloExtra,
       };
     }
     return PEDIDO_POR_DEFECTO;
@@ -105,6 +108,9 @@ export default function CheckoutClient() {
   };
 
   const totales = totalesCheckout(pedido, zona, vip);
+  // Modelos del pedido, del largo exacto del pack. Solo se muestran y se
+  // mandan al servidor: no participan de ningún importe ni del Pixel.
+  const { modelos, modeloExtra } = modelosDelPedido(pedido);
 
   /* --------------------------------------------------------------------
      Meta Pixel — InitiateCheckout
@@ -167,11 +173,11 @@ export default function CheckoutClient() {
      pedido ya creado en vez de duplicarlo.
 
      Se genera una clave nueva solo cuando cambia el contenido del pedido
-     (pack, cantidad, extra, zona, VIP o método de pago), porque entonces es
-     otro pedido. Corregir un dato de contacto NO la renueva: es el mismo
-     pedido con el domicilio bien escrito.
+     (pack, cantidad, extra, modelos, zona, VIP o método de pago), porque
+     entonces es otro pedido. Corregir un dato de contacto NO la renueva: es el
+     mismo pedido con el domicilio bien escrito.
      -------------------------------------------------------------------- */
-  const firmaPedido = `${pedido.packId}|${pedido.qty}|${pedido.extra}|${zona}|${vip}|${metodo}`;
+  const firmaPedido = `${pedido.packId}|${pedido.qty}|${pedido.extra}|${modelos.join(",")}|${modeloExtra ?? ""}|${zona}|${vip}|${metodo}`;
   const claveRef = useRef<{ firma: string; clave: string } | null>(null);
 
   const obtenerClave = () => {
@@ -232,6 +238,8 @@ export default function CheckoutClient() {
       packId: pedido.packId,
       qty: pedido.qty,
       extra: pedido.extra,
+      modelos,
+      ...(modeloExtra ? { modeloExtra } : {}),
       zona,
       vip,
       metodoPago: metodo,
@@ -275,6 +283,8 @@ export default function CheckoutClient() {
       {/* Resumen condensado, arriba de todo, solo en mobile. */}
       <OrderSummary
         totales={totales}
+        modelos={modelos}
+        modeloExtra={modeloExtra}
         zona={zona}
         vip={vip}
         compacto
@@ -317,6 +327,8 @@ export default function CheckoutClient() {
 
         <OrderSummary
           totales={totales}
+          modelos={modelos}
+          modeloExtra={modeloExtra}
           zona={zona}
           vip={vip}
           enviando={enviando}

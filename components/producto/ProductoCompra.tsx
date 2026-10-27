@@ -21,11 +21,15 @@ import {
   ENVIO_GRATIS_DESDE,
   fmtGs,
   type BundleId,
+  type ModeloId,
   type ProductoBundle,
 } from "@/lib/content";
 import { calcularTotales, getBundle } from "@/lib/cart";
+import { ajustarModelos, modelosAParam } from "@/lib/modelos";
 import { trackAddToCartBundle, trackViewContent } from "@/lib/meta-pixel";
 import { useCart } from "@/context/CartContext";
+import ProductoModelos from "./ProductoModelos";
+import { useModeloDestacado } from "./ProductoModeloContext";
 
 const ICONOS_TRUST: Record<string, IconComponent> = {
   truck: IconTruck,
@@ -37,9 +41,9 @@ const ICONOS_TRUST: Record<string, IconComponent> = {
 type ProductoCompraProps = {
   /**
    * Sobrescribe la navegación de "Comprar ahora". Por defecto va directo a
-   * `/checkout?pack={id}`, sin pasar por el carrito.
+   * `/checkout?pack={id}&modelos=…`, sin pasar por el carrito.
    */
-  onComprarAhora?: (bundleId: BundleId) => void;
+  onComprarAhora?: (bundleId: BundleId, modelos: ModeloId[]) => void;
 };
 
 function Estrellas({
@@ -160,12 +164,33 @@ export default function ProductoCompra({
   onComprarAhora,
 }: ProductoCompraProps) {
   const [bundleId, setBundleId] = useState<BundleId>(BUNDLE_POR_DEFECTO);
+  // Un modelo por pulsera del pack, todos en Negro al empezar.
+  const [modelos, setModelos] = useState<ModeloId[]>(() =>
+    ajustarModelos([], getBundle(BUNDLE_POR_DEFECTO).unidades),
+  );
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   const cart = useCart();
   const router = useRouter();
+  const destacado = useModeloDestacado();
 
   const bundle = getBundle(bundleId);
   const totales = calcularTotales(bundle);
+
+  /**
+   * Cambiar de pack conserva los modelos que siguen existiendo: de 2 a 3 se
+   * suma una pulsera en Negro, de 3 a 2 se quita la tercera. Precios, envío y
+   * todo lo demás siguen dependiendo solo del pack.
+   */
+  const elegirBundle = (id: BundleId) => {
+    setBundleId(id);
+    setModelos((previos) => ajustarModelos(previos, getBundle(id).unidades));
+  };
+
+  /** Cambia una pulsera y la lleva a la foto principal de la galería. */
+  const cambiarModelo = (indice: number, id: ModeloId) => {
+    setModelos((previos) => previos.map((m, i) => (i === indice ? id : m)));
+    destacado?.destacar(id);
+  };
 
   /**
    * ViewContent — una sola vez por visita a /producto, con el pack que viene
@@ -188,7 +213,7 @@ export default function ProductoCompra({
     // AddToCart que reportar.
     if (!cart) return;
 
-    cart.agregarBundle(bundleId);
+    cart.agregarBundle(bundleId, modelos);
     // Se guarda el disparador para devolverle el foco al cerrar el carrito.
     cart.disparadorRef.current = e.currentTarget;
 
@@ -202,10 +227,10 @@ export default function ProductoCompra({
    */
   const comprarAhora = () => {
     if (onComprarAhora) {
-      onComprarAhora(bundleId);
+      onComprarAhora(bundleId, modelos);
       return;
     }
-    router.push(`/checkout?pack=${bundleId}`);
+    router.push(`/checkout?pack=${bundleId}&modelos=${modelosAParam(modelos)}`);
   };
 
   /** Flechas mueven la selección dentro del radiogroup (patrón WAI-ARIA). */
@@ -217,7 +242,7 @@ export default function ProductoCompra({
     const delta = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : -1;
     const siguiente =
       PRODUCTO_BUNDLES[(i + delta + PRODUCTO_BUNDLES.length) % PRODUCTO_BUNDLES.length]!;
-    setBundleId(siguiente.id);
+    elegirBundle(siguiente.id);
     refs.current[siguiente.id]?.focus();
   };
 
@@ -255,7 +280,7 @@ export default function ProductoCompra({
             key={b.id}
             bundle={b}
             seleccionado={b.id === bundleId}
-            onSelect={() => setBundleId(b.id)}
+            onSelect={() => elegirBundle(b.id)}
             onKeyDown={onKeyDown}
             refCb={(el) => {
               refs.current[b.id] = el;
@@ -263,6 +288,9 @@ export default function ProductoCompra({
           />
         ))}
       </div>
+
+      {/* Modelos: uno por pulsera del pack, más "Tu pack incluye". */}
+      <ProductoModelos modelos={modelos} onCambio={cambiarModelo} />
 
       {/* Totales — siguen al bundle elegido, sin multiplicador de cantidad. */}
       <div className="mt-[18px] flex items-end justify-between border-t border-borde-claro pt-[14px] lg:mt-5 lg:pt-5">

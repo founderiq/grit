@@ -66,7 +66,7 @@ export const CONTENIDO_TIPOS = [
 export const PRODUCT_SPECS = [
   { label: "Material", valor: "Tejido elástico premium, tacto suave" },
   { label: "Símbolo", valor: "Cruz bordada en hilo, no estampada" },
-  { label: "Color y talle", valor: "Negro, talle único elástico" },
+  { label: "Colores", valor: "Negro, Azul, Verde, Gris, Rosa y Floral · Talle único elástico" },
   { label: "Uso", valor: "Entreno, agua, rutina diaria" },
   { label: "Precio", valor: "115.000 Gs" },
 ] as const;
@@ -200,6 +200,76 @@ export const PRODUCTO_GALERIA: ProductoImagen[] = [
     alt: "Detalle del chip NFC integrado en la pulsera GRIT",
   },
 ];
+
+/* ------------------------------------------------------------
+   Modelos (colores) de la pulsera
+   ------------------------------------------------------------ */
+
+export type ModeloId = "negro" | "azul" | "verde" | "gris" | "rosa" | "floral";
+
+export type ProductoModelo = {
+  id: ModeloId;
+  nombre: string;
+  /** Foto oficial del modelo. Asset independiente de la galería general. */
+  src: string;
+  alt: string;
+};
+
+/**
+ * Los seis modelos, en el orden en que se ofrecen. Todos cuestan lo mismo:
+ * el precio depende solo del pack. No hay stock ni SKU por modelo.
+ */
+export const PRODUCTO_MODELOS: ProductoModelo[] = [
+  {
+    id: "negro",
+    nombre: "Negro",
+    src: "/img/variants/grit-negro.webp",
+    alt: "Par de pulseras GRIT modelo Negro, con el logo GRIT y la cruz bordada",
+  },
+  {
+    id: "azul",
+    nombre: "Azul",
+    src: "/img/variants/grit-azul.webp",
+    alt: "Par de pulseras GRIT modelo Azul, con el logo GRIT y la cruz bordada",
+  },
+  {
+    id: "verde",
+    nombre: "Verde",
+    src: "/img/variants/grit-verde.webp",
+    alt: "Par de pulseras GRIT modelo Verde, con el logo GRIT y la cruz bordada",
+  },
+  {
+    id: "gris",
+    nombre: "Gris",
+    src: "/img/variants/grit-gris.webp",
+    alt: "Par de pulseras GRIT modelo Gris, con el logo GRIT y la cruz bordada",
+  },
+  {
+    id: "rosa",
+    nombre: "Rosa",
+    src: "/img/variants/grit-rosa.webp",
+    alt: "Par de pulseras GRIT modelo Rosa, con el logo GRIT y la cruz bordada",
+  },
+  {
+    id: "floral",
+    nombre: "Floral",
+    src: "/img/variants/grit-floral.webp",
+    alt: "Par de pulseras GRIT modelo Floral, con el logo GRIT y la cruz bordada",
+  },
+];
+
+/** Modelo con el que nace cada pulsera: siempre hay una selección válida. */
+export const MODELO_POR_DEFECTO: ModeloId = "negro";
+
+export const PRODUCTO_MODELOS_COPY = {
+  tituloUno: "Elegí tu modelo",
+  tituloVarios: "Elegí tus modelos",
+  pulsera: (n: number) => `Pulsera ${n}`,
+  packIncluye: "Tu pack incluye",
+  ampliar: (n: number, nombre: string) => `Ampliar pulsera ${n}: ${nombre}`,
+  cerrarPreview: "Cerrar vista ampliada",
+  modeloExtra: "Modelo",
+} as const;
 
 /* ------------------------------------------------------------
    Catálogo — fuente única de verdad de precios

@@ -68,6 +68,14 @@ export type PedidoDetalle = {
   archivadoEn: string | null;
 
   items: ItemDetalle[];
+  /**
+   * Modelos elegidos en el checkout, en orden, como ids del catálogo
+   * (`negro`, `azul`…). Vacío en pedidos anteriores a los modelos y en los
+   * manuales del panel.
+   */
+  modelos: string[];
+  /** Modelo de la pulsera extra promocional, si el pedido la tiene. */
+  modeloExtra: string | null;
   ajustes: AjusteDetalle[];
 };
 

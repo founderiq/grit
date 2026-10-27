@@ -22,7 +22,7 @@ import {
   type ProgresoEnvio,
   type Totales,
 } from "@/lib/cart";
-import type { BundleId } from "@/lib/content";
+import type { BundleId, ModeloId } from "@/lib/content";
 
 export type CartApi = {
   estado: CartState;
@@ -37,12 +37,14 @@ export type CartApi = {
    */
   hidratado: boolean;
 
-  agregarBundle: (id: BundleId) => void;
+  /** `modelos`: uno por pulsera del pack. Si falta o no alcanza, Negro. */
+  agregarBundle: (id: BundleId, modelos?: readonly ModeloId[]) => void;
   quitarBundle: () => void;
   subirCantidad: () => void;
   bajarCantidad: () => void;
   agregarExtra: () => void;
   quitarExtra: () => void;
+  cambiarModeloExtra: (modelo: ModeloId) => void;
   abrir: (disparador?: HTMLElement | null) => void;
   cerrar: () => void;
   /** Elemento que abrió el drawer, para devolverle el foco al cerrar. */
@@ -93,9 +95,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "abrir" });
   }, []);
 
-  const agregarBundle = useCallback((id: BundleId) => {
-    dispatch({ type: "agregarBundle", id });
-  }, []);
+  const agregarBundle = useCallback(
+    (id: BundleId, modelos?: readonly ModeloId[]) => {
+      dispatch({ type: "agregarBundle", id, modelos });
+    },
+    [],
+  );
 
   const api = useMemo<CartApi>(() => {
     const totales = totalesDeEstado(estado);
@@ -112,6 +117,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       bajarCantidad: () => dispatch({ type: "bajarCantidad" }),
       agregarExtra: () => dispatch({ type: "agregarExtra" }),
       quitarExtra: () => dispatch({ type: "quitarExtra" }),
+      cambiarModeloExtra: (modelo: ModeloId) =>
+        dispatch({ type: "cambiarModeloExtra", modelo }),
       abrir,
       cerrar: () => dispatch({ type: "cerrar" }),
       disparadorRef,
