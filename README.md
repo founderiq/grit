@@ -98,6 +98,28 @@ Placeholders de imagen rellenables por el usuario, **sin librerías externas**:
 
 ---
 
+## Galería de /producto (administrable)
+
+Las fotos de la galería general de `/producto` se administran desde
+**`/admin/galeria`** (subir, reemplazar, eliminar y reordenar con drag & drop o
+↑/↓). No hace falta tocar `lib/content.ts`, subir archivos a GitHub ni hacer
+deploy: cada cambio se publica al instante.
+
+- Archivos: Supabase Storage, bucket público de solo lectura `product-gallery`.
+- Orden y metadatos: tabla `product_gallery_images`. La posición #1 es la foto
+  principal.
+- Las fotos se optimizan en el navegador antes de subirse (máx. 1200 px, WebP,
+  sin recortes) y el servidor vuelve a validarlas.
+- Fallback: si Supabase falla o no hay filas, se muestran las fotos de
+  `public/img/galeria` (`PRODUCTO_GALERIA` en `lib/content.ts`).
+- Las fotos de los modelos (Negro, Azul, Verde, Gris, Rosa, Floral) no pasan
+  por este sistema.
+
+Detalle técnico, seguridad y cómo aplicar la migración:
+[`supabase/README.md`](supabase/README.md#galería-de-producto-storage-migración-7).
+
+---
+
 ## Correr localmente
 
 Requisitos: **Node.js 18.18+** (recomendado 20/22) y npm.

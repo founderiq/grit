@@ -306,6 +306,115 @@ export const ADMIN = {
     } as Record<string, string>,
   },
 
+  /** Navegación entre las secciones del panel. */
+  secciones: {
+    etiqueta: "Secciones del panel",
+    items: [
+      { id: "pedidos", etiqueta: "Pedidos", href: "/admin" },
+      { id: "galeria", etiqueta: "Galería de producto", href: "/admin/galeria" },
+    ],
+  },
+
+  galeria: {
+    eyebrow: "Contenido de /producto",
+    titulo: "Galería de producto",
+    detalle:
+      "La foto #1 es la principal. Los cambios se publican en /producto al momento, sin deploy.",
+    verProducto: "Ver /producto",
+    subir: "Subir imagen",
+    principal: "Principal",
+    posicion: (n: number) => `#${n}`,
+    arrastrar: (n: number) => `Arrastrar la foto ${n} para cambiar su posición`,
+    subirUno: (n: number) => `Subir la foto ${n} un lugar`,
+    bajarUno: (n: number) => `Bajar la foto ${n} un lugar`,
+    reemplazar: "Reemplazar",
+    eliminar: "Eliminar",
+    sinDescripcion: "Sin descripción",
+    origenEstatica: "Original del sitio",
+    origenStorage: "Subida desde el panel",
+    oculta: "Oculta",
+    rotaTitulo: "Archivo no disponible",
+    vacio: "Todavía no hay imágenes en la galería.",
+    vacioDetalle: "Mientras tanto, /producto muestra las fotos originales del sitio.",
+    ultimaNoSeElimina: "Es la única imagen: subí otra antes de eliminarla.",
+
+    orden: {
+      sinGuardar: "Cambiaste el orden. Guardalo para publicarlo en /producto.",
+      guardar: "Guardar orden",
+      guardando: "Guardando…",
+      descartar: "Descartar",
+      bloqueado: "Guardá o descartá el nuevo orden antes de subir, reemplazar o eliminar.",
+      ayudaMovil: "Usá ↑ y ↓ para cambiar el orden.",
+      ayudaEscritorio: "Arrastrá las fotos o usá ↑ y ↓ para cambiar el orden.",
+    },
+
+    archivo: {
+      eyebrowSubir: "Galería de producto",
+      tituloSubir: "Subir imagen",
+      eyebrowReemplazar: (n: number) => `Foto #${n}`,
+      tituloReemplazar: "Reemplazar imagen",
+      elegir: "Elegir imagen",
+      cambiar: "Elegir otra",
+      soltar: "o soltala acá",
+      formatos: "JPG, PNG o WebP · hasta 20 MB",
+      optimizando: "Optimizando…",
+      vistaPrevia: "Vista previa",
+      vistaPreviaNota: "Así se va a ver en la galería: completa, sin recortes.",
+      original: "Original",
+      optimizada: "Se guarda",
+      actual: "Imagen actual",
+      nueva: "Nueva",
+      conservaPosicion: (n: number) => `La nueva imagen se queda en la posición #${n}.`,
+      alFinal: (n: number) => `Se agrega al final, en la posición #${n}.`,
+      alt: "Descripción (texto alternativo)",
+      altAyuda: "Qué se ve en la foto. La leen los lectores de pantalla y Google. Opcional.",
+      altPlaceholder: "Ej.: Pulsera GRIT en la muñeca, junto a una Biblia abierta",
+      subir: "Subir imagen",
+      subiendo: "Subiendo…",
+      reemplazar: "Reemplazar imagen",
+      reemplazando: "Reemplazando…",
+    },
+
+    eliminarConfirmacion: {
+      eyebrow: (n: number) => `Foto #${n}`,
+      titulo: "¿Eliminar esta imagen de la galería?",
+      detalle:
+        "Deja de mostrarse en /producto y las fotos de abajo suben un lugar. No se puede deshacer.",
+      principal: "Es la foto principal: la que hoy está en #2 pasa a ser la principal.",
+      si: "Sí, eliminar",
+      eliminando: "Eliminando…",
+    },
+
+    mensajes: {
+      subida: (n: number) => `Imagen subida en la posición #${n}. Ya está en /producto.`,
+      subidaSinPosicion: "Imagen subida. Ya está en /producto.",
+      reemplazada: "Imagen reemplazada. Mantiene su posición y ya está en /producto.",
+      eliminada: "Imagen eliminada. El orden se actualizó en /producto.",
+      ordenGuardado: "Orden guardado. /producto ya muestra el nuevo orden.",
+    },
+
+    /** Mensajes genéricos: el detalle real queda en el log del servidor. */
+    errores: {
+      sin_archivo: "Elegí una imagen.",
+      muy_grande: "La imagen es demasiado pesada. Elegí una de hasta 20 MB.",
+      tipo_no_permitido: "Formato no permitido. Usá JPG, PNG o WebP.",
+      no_es_imagen: "El archivo no es una imagen válida.",
+      tipo_no_coincide: "El archivo no es una imagen válida.",
+      muy_chica: "La imagen es muy chica: necesita al menos 200 px por lado.",
+      dimensiones: "La imagen no pasó por la optimización. Volvé a elegirla.",
+      no_se_pudo_optimizar:
+        "No pudimos preparar esta imagen en tu navegador. Probá con otra o exportala como JPG.",
+      alt_invalido: "La descripción puede tener hasta 300 caracteres.",
+      no_existe: "Esa imagen ya no está en la galería. Actualizamos la lista.",
+      ultima: "La galería necesita al menos una imagen. Subí otra antes de eliminar esta.",
+      orden_desactualizado:
+        "La galería cambió mientras ordenabas. Actualizamos la lista: revisá el orden y volvé a guardar.",
+      no_autorizado: "Tu sesión ya no tiene permiso para editar.",
+      datos_invalidos: "Revisá los datos e intentá de nuevo.",
+      error_interno: "No pudimos guardar el cambio. Probá de nuevo.",
+    },
+  },
+
   autorizado: {
     mensaje: "Panel administrativo conectado correctamente.",
     detalle:

@@ -29,6 +29,17 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * La página sigue siendo estática (rápida, servida desde el CDN), pero la
+ * galería es administrable: se regenera
+ *   · al instante cuando el panel cambia la galería (`revalidatePath`
+ *     en app/admin/galeria/acciones.ts), y
+ *   · como red de seguridad, a los 60 s como mucho. Si una regeneración tuvo
+ *     que usar el fallback estático (Supabase caído), se reintenta sola.
+ * Nada de esto requiere un deploy.
+ */
+export const revalidate = 60;
+
 const NAV_PRODUCTO: NavLink[] = [
   { href: "#como-funciona", label: "Cómo funciona" },
   { href: "#opiniones", label: "Opiniones" },
