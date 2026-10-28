@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { PRODUCTO_GALERIA } from "@/lib/content";
+import { PRODUCTO_GALERIA, type ProductoImagen } from "@/lib/content";
 import { getModelo } from "@/lib/modelos";
 import ProductoTestimonio from "./ProductoTestimonio";
 import { useModeloDestacado } from "./ProductoModeloContext";
@@ -10,8 +10,9 @@ import { useModeloDestacado } from "./ProductoModeloContext";
 /**
  * Galería de producto: foto principal cuadrada (1:1, máx. 500×500 en
  * desktop, object-fit contain para no recortar el diseño de la imagen) +
- * miniaturas. Las fotos salen de PRODUCTO_GALERIA, así que se reemplazan
- * editando esa lista sin tocar este componente.
+ * miniaturas. Las fotos llegan por props desde ProductoPrincipal: son las que
+ * se administran en /admin/galeria, en su orden (la #1 es la principal). Si la
+ * lista llegara vacía se usa PRODUCTO_GALERIA, para que nunca quede sin fotos.
  *
  * El testimonio se renderiza acá en desktop (debajo de las miniaturas); en
  * mobile lo monta ProductoPrincipal después de la fila de confianza.
@@ -22,21 +23,22 @@ import { useModeloDestacado } from "./ProductoModeloContext";
  * teclado queda visible y distinguible de la selección.
  *
  * Modelos: cuando el usuario elige un modelo en la columna de compra, la foto
- * principal pasa a ser la de ese modelo (siempre el último elegido). Las diez
- * fotos y sus miniaturas no cambian: tocar una miniatura vuelve a la galería
- * hasta la próxima elección de modelo.
+ * principal pasa a ser la de ese modelo (siempre el último elegido). Las fotos
+ * de la galería y sus miniaturas no cambian: tocar una miniatura vuelve a la
+ * galería hasta la próxima elección de modelo.
  */
-export default function ProductoGaleria() {
+export default function ProductoGaleria({ imagenes }: { imagenes: ProductoImagen[] }) {
+  const galeria = imagenes.length > 0 ? imagenes : PRODUCTO_GALERIA;
   const [activa, setActiva] = useState(0);
   const destacado = useModeloDestacado()?.destacado ?? null;
   // `vez` del último modelo que una miniatura ya "tapó". Mientras el modelo
   // destacado sea más nuevo que eso, la foto principal es la del modelo.
   const [tapadoHasta, setTapadoHasta] = useState(0);
-  const total = PRODUCTO_GALERIA.length;
+  const total = galeria.length;
 
   const conModelo = destacado !== null && destacado.vez > tapadoHasta;
   const modelo = conModelo ? getModelo(destacado.id) : null;
-  const foto = modelo ?? PRODUCTO_GALERIA[activa] ?? PRODUCTO_GALERIA[0]!;
+  const foto = modelo ?? galeria[activa] ?? galeria[0]!;
 
   return (
     <div>
@@ -60,7 +62,7 @@ export default function ProductoGaleria() {
       </div>
 
       <div className="mt-2 grid grid-cols-5 gap-2 sm:mt-[10px] sm:gap-[10px]">
-        {PRODUCTO_GALERIA.map((img, i) => {
+        {galeria.map((img, i) => {
           const activaEsta = !modelo && i === activa;
           return (
             <button

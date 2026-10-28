@@ -27,6 +27,7 @@ Se aplican **en orden de nombre**, una sola vez cada una.
 | 4 | `migrations/20260730_grit_admin_orders_costs.sql` | Columnas de admin en `orders`, `efectivo`, `order_adjustments`, `ad_spend`, `abandoned_checkouts`, `changed_by` | ✅ aplicada |
 | 5 | `migrations/20260731_grit_create_order_costs.sql` | `create_order` con snapshot de costos (`p_units`) | ✅ aplicada |
 | 6 | `migrations/20260801_grit_admin_final.sql` | Borrado lógico de `ad_spend`, conversión y archivo de abandonados, y `create_manual_order` | ⏳ pendiente de aplicar |
+| 7 | `migrations/20260802_grit_product_gallery.sql` | Galería administrable de /producto: `product_gallery_images`, sus cuatro funciones, el bucket `product-gallery` y el seed de las diez fotos actuales | ⏳ pendiente de aplicar |
 
 > **No vuelvas atrás.** La migración 5 borra la versión de `create_order` que
 > crea la 2 y la reemplaza por otra con un parámetro más. Volver a correr la 2
@@ -257,6 +258,35 @@ privilegio, así que no se puede insertar desde el navegador.
 | `created_at` / `updated_at` / `last_seen_at` | `timestamptz` | |
 | `archived_at` | `timestamptz` | Opcional |
 
+### `product_gallery_images` (migración 7)
+
+La galería **general** de /producto. Las fotos de los modelos de pulsera
+(Negro, Azul, Verde, Gris, Rosa, Floral) **no** están acá: siguen en
+`lib/content.ts` y `/public/img/variants`.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `storage_path` | `text` | Ruta en el bucket `product-gallery` (`galeria/<uuid>.<ext>`). Nunca se reutiliza |
+| `static_path` | `text` | Archivo de `/public/img/galeria` (solo filas del seed). Excluyente con `storage_path` |
+| `sort_order` | `integer` | Posición 1..n sin huecos. **La 1 es la foto principal**. Único con chequeo diferido |
+| `alt_text` | `text` | Opcional, hasta 300 caracteres |
+| `is_active` | `boolean` | Default `true`. `false` la saca de /producto sin borrarla |
+| `width` / `height` / `size_bytes` | `integer` | Informativos para el panel |
+| `created_at` / `updated_at` | `timestamptz` | `updated_at` con trigger |
+| `created_by` / `updated_by` | `uuid` | FK → `auth.users.id`, `on delete set null` |
+
+Se escribe **solo** a través de cuatro funciones (`service_role`, cada una
+verifica que `p_admin` sea un administrador activo y toma un lock de
+transacción para que dos ediciones simultáneas no se pisen):
+
+| Función | Qué hace |
+|---|---|
+| `gallery_add_image` | Alta al final (`max(sort_order) + 1`) |
+| `gallery_replace_image` | Cambia el archivo conservando la posición. Devuelve la ruta anterior |
+| `gallery_delete_image` | Baja + renumeración 1..n. No deja borrar la última. Devuelve la ruta borrada |
+| `gallery_reorder` | Recibe **todos** los ids en el orden nuevo; si falta, sobra o se repite uno, falla sin tocar nada |
+
 ---
 
 ## Relaciones
@@ -366,7 +396,9 @@ con cero duplicados.
 
 ## Política de RLS
 
-**Row Level Security está activo en las diez tablas, y no hay ninguna política.**
+**Row Level Security está activo en todas las tablas, y no hay ninguna política.**
+(Diez tablas hasta la migración 6; la 7 suma `product_gallery_images` con el
+mismo criterio.)
 
 Con RLS activo y sin políticas, el efecto es:
 
@@ -436,6 +468,85 @@ comprometido.
 Este archivo no contiene ninguna credencial, ni la URL del proyecto, ni la anon
 key, ni la publishable key, ni la service role key, ni tokens, ni emails, ni
 links de pago reales.
+
+---
+
+## Galería de /producto: Storage (migración 7)
+
+### Bucket `product-gallery`
+
+| Opción | Valor | Por qué |
+|---|---|---|
+| `public` | `true` | Habilita **solo la lectura** por URL (`/storage/v1/object/public/product-gallery/...`), que es lo que necesita un visitante |
+| `file_size_limit` | 3 MB | Segunda barrera. El panel guarda versiones optimizadas de unos cientos de KB |
+| `allowed_mime_types` | `image/webp`, `image/jpeg`, `image/png` | Ningún otro tipo entra al bucket |
+
+**No se crea ninguna política sobre `storage.objects`.** Sin políticas,
+`anon` y `authenticated` no pueden subir, reemplazar, borrar ni listar. Las
+escrituras las hace el servidor con la service role, siempre después de
+`autorizarAdmin()` (sesión validada + fila activa en `admin_users`).
+
+### Orden seguro de las operaciones
+
+Storage y la base no comparten transacción, así que el servidor
+(`lib/galeria-mutaciones.ts`) ordena los pasos para que **nunca** quede una
+fila apuntando a un archivo inexistente:
+
+- **Subir:** archivo nuevo → fila. Si la fila falla, se borra el archivo.
+- **Reemplazar:** archivo nuevo → la fila apunta al nuevo → recién ahí se
+  borra el viejo. Nunca se borra primero.
+- **Eliminar:** fila → archivo.
+
+En el peor caso queda un archivo huérfano en el bucket (invisible). Los
+archivos del seed (`/public/img/galeria`) no se borran nunca.
+
+### Seed
+
+La migración **registra** las diez fotos actuales apuntando a
+`/public/img/galeria`, en el mismo orden y con sus textos alternativos. No las
+copia a Storage: ya están publicadas y optimizadas. Reemplazar una desde el
+panel la mueve a Storage sin tocar el archivo original. Solo corre si la tabla
+está vacía.
+
+> **Antes de borrar algún día `/public/img/galeria`:** verificá que ninguna
+> fila siga apuntando ahí (`select * from product_gallery_images where
+> static_path is not null;`) y reemplazá esas fotos desde el panel. Mientras
+> tanto, esos archivos son también el fallback de /producto.
+
+### Fallback y caché
+
+- `/producto` es estática con `revalidate = 60`. Cada cambio del panel llama a
+  `revalidatePath("/producto")`, así que se publica al instante, sin deploy.
+- Si la consulta falla, tarda más de 4 s, la tabla no existe todavía o no tiene
+  filas activas, /producto muestra las fotos de `PRODUCTO_GALERIA`
+  (`/public/img/galeria`). La galería nunca queda vacía.
+
+### Verificación después de aplicar
+
+```sql
+-- Diez filas del seed, posiciones 1..10
+select sort_order, static_path, storage_path from public.product_gallery_images order by 1;
+
+-- Bucket público con límite y tipos
+select id, public, file_size_limit, allowed_mime_types from storage.buckets where id = 'product-gallery';
+
+-- Ninguna política de storage.objects menciona el bucket (lo esperado: 0 filas)
+select policyname, cmd, roles from pg_policies
+ where schemaname = 'storage' and tablename = 'objects'
+   and (qual ilike '%product-gallery%' or with_check ilike '%product-gallery%');
+
+-- anon y authenticated sin acceso a la tabla ni a las funciones
+select has_table_privilege('anon', 'public.product_gallery_images', 'select')           as anon_lee,
+       has_function_privilege('authenticated', 'public.gallery_reorder(uuid[], uuid)', 'execute') as auth_ejecuta;
+```
+
+Lo esperado: diez filas, el bucket con `public = t`, cero políticas, y
+`anon_lee = f`, `auth_ejecuta = f`.
+
+> Si el proyecto ya tuviera alguna política **genérica** sobre
+> `storage.objects` (por ejemplo, "authenticated puede insertar en cualquier
+> bucket"), también alcanzaría a este bucket. Revisalo con
+> `select * from pg_policies where schemaname = 'storage';`.
 
 ---
 
@@ -664,6 +775,8 @@ Orden completo:
 3. migrations/20260729_grit_admin_foundation.sql       ← aplicar
 4. migrations/20260730_grit_admin_orders_costs.sql     ← aplicar
 5. migrations/20260731_grit_create_order_costs.sql     ← aplicar
+6. migrations/20260801_grit_admin_final.sql            ← aplicar
+7. migrations/20260802_grit_product_gallery.sql        ← aplicar
 ```
 
 Después, y solo entonces:
