@@ -707,10 +707,10 @@ export const VIP = {
 
 /** Datos bancarios que se muestran en el checkout y que copia el botón. */
 export const BANCO = [
-  { etiqueta: "Entidad", valor: "ueno bank" },
+  { etiqueta: "Entidad", valor: "Banco GNB Paraguay S.A.E.C.A." },
   { etiqueta: "Titular", valor: "Emilio Manuel Morales Gauto" },
   { etiqueta: "Cédula", valor: "4.488.640" },
-  { etiqueta: "Número de cuenta", valor: "619537908" },
+  { etiqueta: "Número de cuenta", valor: "13275805001" },
   { etiqueta: "Alias", valor: "4488640" },
   { etiqueta: "WhatsApp", valor: "0994320994" },
 ] as const;
