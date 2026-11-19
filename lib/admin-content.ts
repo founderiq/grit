@@ -179,6 +179,48 @@ export const ADMIN = {
         "¿Archivar este pedido? Deja de contar en las métricas, pero no se borra y lo podés restaurar cuando quieras.",
       nota: "Archivar es un borrado lógico: el pedido nunca se elimina de la base.",
     },
+
+    meta: {
+      titulo: "Meta",
+      enviar: "Enviar venta a Meta",
+      enviando: "Enviando…",
+      confirmar:
+        "Se va a reportar a Meta como una compra (Purchase) por el total del pedido. Se envía una sola vez y no se puede deshacer.",
+      confirmarSi: "Sí, enviar",
+      cancelar: "Cancelar",
+      reintentar: "Reintentar",
+      enviada: "✓ Venta enviada",
+      enviadaPrueba: "✓ Enviada como prueba (Test Events)",
+      enCurso: "Enviando a Meta…",
+      error: "⚠ Error al enviar",
+      enviadaEl: "Enviada",
+      eventId: "Event ID",
+      modoPrueba:
+        "Modo prueba: los envíos van a Test Events de Meta y no cuentan como ventas reales.",
+      enviadaEnVivo: "Este pedido ya se envió a Meta en producción.",
+      nota: "Solo pedidos manuales y pagados. Se reporta como venta cerrada por chat (WhatsApp), con los datos del cliente cifrados.",
+      motivos: {
+        no_manual: "Solo se envían pedidos manuales.",
+        no_pagado: "Disponible cuando el pedido esté Pagado.",
+        archivado: "El pedido está archivado.",
+        ya_enviado: "Esta venta ya se envió a Meta.",
+        envio_en_curso: "Hay un envío en curso. Esperá unos segundos.",
+        sin_telefono:
+          "El WhatsApp del cliente no es un número válido. Corregilo para poder enviar.",
+        sin_fecha_pago:
+          "No encontramos cuándo se marcó como Pagado. Pasalo a Pendiente y otra vez a Pagado.",
+        fuera_de_ventana:
+          "Pasaron más de 7 días desde que se marcó como Pagado: Meta ya no acepta este evento.",
+      },
+      sinConfiguracion: "Meta no está configurado en este entorno.",
+      liveFueraDeProduccion:
+        "En este entorno solo se permiten envíos de prueba y falta el código de Test Events.",
+      conflicto: "El pedido cambió mientras se enviaba. Volvé a intentar.",
+      interrumpido: "El envío anterior no terminó. Podés reintentar: Meta descarta el duplicado si ya había llegado.",
+      okLive: "Venta enviada a Meta.",
+      okPrueba: "Venta enviada a Meta como evento de prueba.",
+      errorEnvio: "Meta no recibió el evento:",
+    },
   },
 
   /** Textos compartidos por los tres formularios del panel. */

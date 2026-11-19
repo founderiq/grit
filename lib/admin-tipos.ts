@@ -77,6 +77,33 @@ export type PedidoDetalle = {
   /** Modelo de la pulsera extra promocional, si el pedido la tiene. */
   modeloExtra: string | null;
   ajustes: AjusteDetalle[];
+  /**
+   * Envío de la venta a Meta (Conversions API). Solo existe en pedidos
+   * manuales: un pedido web nunca se envía desde el panel, así que llega en
+   * `null` y la interfaz ni siquiera muestra el bloque.
+   */
+  meta: EstadoMetaVista | null;
+};
+
+/* ------------------------------------------------------------
+   Meta Conversions API — estado del envío de un pedido manual
+   ------------------------------------------------------------ */
+
+export type EstadoMetaVista = {
+  /** `test` cuando el entorno tiene META_CAPI_TEST_EVENT_CODE (Preview). */
+  modo: "live" | "test";
+  estado: "no_enviado" | "enviando" | "enviado" | "error";
+  eventId: string | null;
+  enviadoEn: string | null;
+  /** Mensaje corto y saneado de Meta. Nunca un token. */
+  error: string | null;
+  /**
+   * Por qué no se puede enviar ahora (no está Pagado, está archivado, etc.).
+   * `null` cuando el botón está habilitado o el estado ya lo explica.
+   */
+  bloqueo: string | null;
+  /** En modo prueba: el pedido ya se había enviado de verdad en producción. */
+  enviadoEnVivo: boolean;
 };
 
 /* ------------------------------------------------------------

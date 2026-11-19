@@ -35,6 +35,7 @@ import {
 import { POR_PAGINA, type FiltrosPedidos } from "@/lib/admin-filtros";
 import type { Rango } from "@/lib/admin-rango";
 import { modelosDeMetadata } from "@/lib/modelos";
+import { fechaDePago, vistaMeta } from "@/lib/meta-capi-datos";
 import {
   COSTOS_POR_DEFECTO,
   type AdSpendFila,
@@ -472,6 +473,20 @@ export async function obtenerPedido(
     // (anteriores a la función o manuales) y datos rotos.
     const modelosGuardados = modelosDeMetadata(o.metadata);
 
+    // Envío a Meta: solo pedidos manuales. La fecha de pago sale de la
+    // bitácora; si esa lectura fallara, el bloque lo muestra como "sin fecha"
+    // y la Server Action vuelve a leer todo antes de decidir.
+    const esManual = txt(o.source) === "manual";
+    const pagadoEn = esManual ? await fechaDePago(supabase, txt(o.id)) : null;
+    const meta = vistaMeta({
+      source: txt(o.source),
+      paymentStatus: txt(o.payment_status),
+      archivado: o.archived_at !== null && o.archived_at !== undefined,
+      telefono: txt(o.customer_whatsapp),
+      pagadoEn: pagadoEn ?? null,
+      metadata: o.metadata,
+    });
+
     return {
       ok: true,
       datos: {
@@ -531,6 +546,8 @@ export async function obtenerPedido(
           createdAt: a.created_at,
           responsable: a.created_by ? (responsables.get(a.created_by) ?? null) : null,
         })),
+
+        meta,
       },
     };
   } catch (e) {
