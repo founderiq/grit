@@ -8,11 +8,15 @@
  * VARIABLES DE ENTORNO (todas de servidor, nunca NEXT_PUBLIC_)
  *   META_CAPI_ACCESS_TOKEN     Secreta. Token de Conversions API del dataset.
  *   META_DATASET_ID            ID del dataset (el mismo número que el Pixel).
- *                              Si falta, se usa NEXT_PUBLIC_META_PIXEL_ID.
  *   META_CAPI_TEST_EVENT_CODE  Opcional. Si está, TODO envío sale como evento
  *                              de prueba (Test Events) y se registra como tal.
  *                              Se configura solo en Preview.
- *   META_GRAPH_API_VERSION     Opcional. Por defecto `v26.0`.
+ *   META_GRAPH_API_VERSION     Versión de Graph API, p. ej. `v27.0`.
+ *
+ *   Las tres primeras —token, dataset y versión— son OBLIGATORIAS: si falta
+ *   cualquiera (o el dataset/versión no tienen un formato válido) no se
+ *   intenta ningún envío y el panel recibe un error con los NOMBRES de lo que
+ *   falta, nunca con valores.
  *
  * SEGURO CONTRA PRUEBAS EN PRODUCCIÓN, Y AL REVÉS
  *   · Con test code → modo "test": nada cuenta en Meta.
@@ -28,18 +32,15 @@
 import "server-only";
 import type { EventoMeta, ModoMeta } from "@/lib/meta-capi";
 
-/** Última versión de Graph API confirmada en la documentación de Meta. */
-export const VERSION_POR_DEFECTO = "v26.0";
-
 const TIMEOUT_MS = 8000;
 const MAX_ERROR = 200;
 
-/** Acepta `v26.0` o `26.0`; cualquier otra cosa cae a la versión por defecto. */
-export function normalizarVersion(cruda: string | undefined): string {
+/** Acepta `v27.0` o `27.0`. Cualquier otra cosa (o vacío) es `null`: no hay versión por defecto. */
+export function normalizarVersion(cruda: string | undefined): string | null {
   const v = (cruda ?? "").trim();
   if (/^v\d+\.\d+$/.test(v)) return v;
   if (/^\d+\.\d+$/.test(v)) return `v${v}`;
-  return VERSION_POR_DEFECTO;
+  return null;
 }
 
 export type ConfiguracionMeta =
@@ -51,25 +52,32 @@ export type ConfiguracionMeta =
       version: string;
       testCode: string | null;
     }
-  | { ok: false; motivo: "sin_configuracion" | "live_fuera_de_produccion" };
+  | {
+      ok: false;
+      motivo: "sin_configuracion" | "live_fuera_de_produccion";
+      /** Nombres de las variables que faltan o son inválidas. Nunca valores. */
+      faltan: string[];
+    };
 
 /** Lee y valida la configuración. No registra ni devuelve el token en errores. */
 export function configuracionMeta(env: NodeJS.ProcessEnv = process.env): ConfiguracionMeta {
   const token = env.META_CAPI_ACCESS_TOKEN?.trim() ?? "";
-  // El dataset de Events Manager y el Pixel son el MISMO id. Si no se cargó
-  // META_DATASET_ID, se usa el del Pixel, que ya está configurado.
-  const datasetId =
-    env.META_DATASET_ID?.trim() || env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "";
+  const datasetId = env.META_DATASET_ID?.trim() ?? "";
+  const version = normalizarVersion(env.META_GRAPH_API_VERSION);
   const testCode = env.META_CAPI_TEST_EVENT_CODE?.trim() || null;
 
-  if (token === "" || !/^\d+$/.test(datasetId)) {
-    return { ok: false, motivo: "sin_configuracion" };
+  // Sin valores por defecto: lo que falta se informa por NOMBRE y no se envía.
+  const faltan: string[] = [];
+  if (token === "") faltan.push("META_CAPI_ACCESS_TOKEN");
+  if (!/^\d+$/.test(datasetId)) faltan.push("META_DATASET_ID");
+  if (!version) faltan.push("META_GRAPH_API_VERSION");
+
+  if (faltan.length > 0 || !version) {
+    return { ok: false, motivo: "sin_configuracion", faltan };
   }
 
-  const version = normalizarVersion(env.META_GRAPH_API_VERSION);
-
   if (!testCode && env.VERCEL_ENV !== "production") {
-    return { ok: false, motivo: "live_fuera_de_produccion" };
+    return { ok: false, motivo: "live_fuera_de_produccion", faltan: ["META_CAPI_TEST_EVENT_CODE"] };
   }
 
   return { ok: true, modo: testCode ? "test" : "live", token, datasetId, version, testCode };

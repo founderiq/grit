@@ -176,8 +176,10 @@ server-side (`action_source: "chat"`, `event_id: purchase-<order_number>`).
   `orders.metadata.meta_capi` y se reserva antes de llamar a Meta.
 - Con `META_CAPI_TEST_EVENT_CODE` (solo Preview) todo sale como Test Event y se
   registra aparte; sin él, el envío real solo funciona en producción.
-- Variables: `META_CAPI_ACCESS_TOKEN`, `META_DATASET_ID`,
-  `META_CAPI_TEST_EVENT_CODE` y `META_GRAPH_API_VERSION` (ver `.env.example`).
+- Variables obligatorias: `META_CAPI_ACCESS_TOKEN`, `META_DATASET_ID` y
+  `META_GRAPH_API_VERSION` (sin valores por defecto: si falta alguna, no se
+  envía nada y el panel muestra qué variable falta). Opcional:
+  `META_CAPI_TEST_EVENT_CODE`. Ver `.env.example`.
 
 > **Antes de publicar:** actualizá los datos reales en `lib/content.ts`
 > (`LINKS.whatsapp`, `LINKS.instagram`, `LINKS.contacto`) y la URL canónica en

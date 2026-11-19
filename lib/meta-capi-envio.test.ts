@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  VERSION_POR_DEFECTO,
   configuracionMeta,
   enviarEventos,
   modoActual,
@@ -16,8 +15,15 @@ import { armarEvento } from "@/lib/meta-capi";
 
 const TOKEN = "EAAtokenFALSOqueNOdebeFILTRARSE123";
 
+const VERSION = "v27.0";
+
 const env = (extra: Record<string, string>) =>
-  ({ META_CAPI_ACCESS_TOKEN: TOKEN, META_DATASET_ID: "2195171668070768", ...extra }) as unknown as NodeJS.ProcessEnv;
+  ({
+    META_CAPI_ACCESS_TOKEN: TOKEN,
+    META_DATASET_ID: "2195171668070768",
+    META_GRAPH_API_VERSION: VERSION,
+    ...extra,
+  }) as unknown as NodeJS.ProcessEnv;
 
 const evento = armarEvento(
   {
@@ -45,44 +51,57 @@ describe("configuracionMeta", () => {
       modo: "live",
       testCode: null,
     });
-    expect(configuracionMeta(env({ VERCEL_ENV: "preview" }))).toEqual({
+    expect(configuracionMeta(env({ VERCEL_ENV: "preview" }))).toMatchObject({
       ok: false,
       motivo: "live_fuera_de_produccion",
     });
-    expect(configuracionMeta(env({}))).toEqual({ ok: false, motivo: "live_fuera_de_produccion" });
+    expect(configuracionMeta(env({}))).toMatchObject({ ok: false, motivo: "live_fuera_de_produccion" });
   });
 
-  it("sin token o con dataset inválido: no configurado", () => {
-    expect(configuracionMeta({ META_DATASET_ID: "1" } as unknown as NodeJS.ProcessEnv)).toEqual({
+  it.each(["META_CAPI_ACCESS_TOKEN", "META_DATASET_ID", "META_GRAPH_API_VERSION"])(
+    "si falta %s: no configurado, informa solo el NOMBRE",
+    (variable) => {
+      const cfg = configuracionMeta(
+        env({ VERCEL_ENV: "production", META_CAPI_TEST_EVENT_CODE: "T", [variable]: "" }),
+      );
+      expect(cfg).toEqual({ ok: false, motivo: "sin_configuracion", faltan: [variable] });
+      expect(JSON.stringify(cfg)).not.toContain(TOKEN);
+    },
+  );
+
+  it("sin ninguna variable: informa las tres", () => {
+    expect(configuracionMeta({} as NodeJS.ProcessEnv)).toEqual({
       ok: false,
       motivo: "sin_configuracion",
+      faltan: ["META_CAPI_ACCESS_TOKEN", "META_DATASET_ID", "META_GRAPH_API_VERSION"],
     });
+  });
+
+  it("formatos inválidos cuentan como faltantes (no hay valores por defecto)", () => {
     expect(
-      configuracionMeta(env({ META_DATASET_ID: "abc", VERCEL_ENV: "production" })),
-    ).toEqual({ ok: false, motivo: "sin_configuracion" });
+      configuracionMeta(env({ VERCEL_ENV: "production", META_DATASET_ID: "abc" })),
+    ).toMatchObject({ ok: false, faltan: ["META_DATASET_ID"] });
+    expect(
+      configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "27" })),
+    ).toMatchObject({ ok: false, faltan: ["META_GRAPH_API_VERSION"] });
   });
 
-  it("versión por defecto y versión configurable validada", () => {
-    const porDefecto = configuracionMeta(env({ VERCEL_ENV: "production" }));
-    expect(porDefecto.ok && porDefecto.version).toBe(VERSION_POR_DEFECTO);
-
-    const otra = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "v27.0" }));
-    expect(otra.ok && otra.version).toBe("v27.0");
-
-    const sinV = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "26.0" }));
-    expect(sinV.ok && sinV.version).toBe("v26.0");
-
-    const rota = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "27" }));
-    expect(rota.ok && rota.version).toBe(VERSION_POR_DEFECTO);
-  });
-
-  it("sin META_DATASET_ID usa el Pixel ID (es el mismo dataset)", () => {
+  it("no usa el Pixel ID como respaldo del dataset", () => {
     const cfg = configuracionMeta({
       META_CAPI_ACCESS_TOKEN: TOKEN,
+      META_GRAPH_API_VERSION: VERSION,
       NEXT_PUBLIC_META_PIXEL_ID: "2195171668070768",
       META_CAPI_TEST_EVENT_CODE: "T",
     } as unknown as NodeJS.ProcessEnv);
-    expect(cfg).toMatchObject({ ok: true, datasetId: "2195171668070768" });
+    expect(cfg).toMatchObject({ ok: false, faltan: ["META_DATASET_ID"] });
+  });
+
+  it("usa la versión configurada; acepta 'v27.0' o '27.0'", () => {
+    const conV = configuracionMeta(env({ VERCEL_ENV: "production" }));
+    expect(conV.ok && conV.version).toBe("v27.0");
+
+    const sinV = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "27.0" }));
+    expect(sinV.ok && sinV.version).toBe("v27.0");
   });
 
   it("modoActual refleja el entorno", () => {
@@ -108,7 +127,7 @@ describe("enviarEventos", () => {
     expect(r).toEqual({ ok: true, eventsReceived: 1, fbtraceId: "AbC" });
 
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toBe(`https://graph.facebook.com/${VERSION_POR_DEFECTO}/2195171668070768/events`);
+    expect(url).toBe(`https://graph.facebook.com/${VERSION}/2195171668070768/events`);
     expect(String(url)).not.toContain(TOKEN);
     expect(init.method).toBe("POST");
 

@@ -213,6 +213,7 @@ export const ADMIN = {
           "Pasaron más de 7 días desde que se marcó como Pagado: Meta ya no acepta este evento.",
       },
       sinConfiguracion: "Meta no está configurado en este entorno.",
+      faltan: "Falta configurar:",
       liveFueraDeProduccion:
         "En este entorno solo se permiten envíos de prueba y falta el código de Test Events.",
       conflicto: "El pedido cambió mientras se enviaba. Volvé a intentar.",

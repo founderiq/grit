@@ -117,7 +117,11 @@ export async function enviarVentaAMeta(entrada: { pedidoId: string }): Promise<R
   /* 2 · Configuración ----------------------------------------------------- */
   const cfg = configuracionMeta();
   if (!cfg.ok) {
-    return fallo(cfg.motivo === "sin_configuracion" ? T.sinConfiguracion : T.liveFueraDeProduccion);
+    // Solo NOMBRES de variables, nunca valores: no se intenta ningún envío.
+    if (cfg.motivo === "sin_configuracion") {
+      return fallo(`${T.sinConfiguracion} ${T.faltan} ${cfg.faltan.join(", ")}.`);
+    }
+    return fallo(T.liveFueraDeProduccion);
   }
 
   const { supabase, adminId } = guardia;

@@ -305,6 +305,7 @@ describe("vistaMeta — lo que ve el panel", () => {
   const prueba = {
     META_CAPI_ACCESS_TOKEN: "token-de-prueba",
     META_DATASET_ID: "123",
+    META_GRAPH_API_VERSION: "v27.0",
     META_CAPI_TEST_EVENT_CODE: "TEST123",
     VERCEL_ENV: "preview",
   } as unknown as NodeJS.ProcessEnv;
@@ -344,6 +345,7 @@ describe("vistaMeta — lo que ve el panel", () => {
     const produccion = {
       META_CAPI_ACCESS_TOKEN: "token-de-prueba",
       META_DATASET_ID: "123",
+      META_GRAPH_API_VERSION: "v27.0",
       VERCEL_ENV: "production",
     } as unknown as NodeJS.ProcessEnv;
 
