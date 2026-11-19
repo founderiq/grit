@@ -69,8 +69,20 @@ describe("configuracionMeta", () => {
     const otra = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "v27.0" }));
     expect(otra.ok && otra.version).toBe("v27.0");
 
+    const sinV = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "26.0" }));
+    expect(sinV.ok && sinV.version).toBe("v26.0");
+
     const rota = configuracionMeta(env({ VERCEL_ENV: "production", META_GRAPH_API_VERSION: "27" }));
     expect(rota.ok && rota.version).toBe(VERSION_POR_DEFECTO);
+  });
+
+  it("sin META_DATASET_ID usa el Pixel ID (es el mismo dataset)", () => {
+    const cfg = configuracionMeta({
+      META_CAPI_ACCESS_TOKEN: TOKEN,
+      NEXT_PUBLIC_META_PIXEL_ID: "2195171668070768",
+      META_CAPI_TEST_EVENT_CODE: "T",
+    } as unknown as NodeJS.ProcessEnv);
+    expect(cfg).toMatchObject({ ok: true, datasetId: "2195171668070768" });
   });
 
   it("modoActual refleja el entorno", () => {

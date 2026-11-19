@@ -8,6 +8,7 @@
  * VARIABLES DE ENTORNO (todas de servidor, nunca NEXT_PUBLIC_)
  *   META_CAPI_ACCESS_TOKEN     Secreta. Token de Conversions API del dataset.
  *   META_DATASET_ID            ID del dataset (el mismo número que el Pixel).
+ *                              Si falta, se usa NEXT_PUBLIC_META_PIXEL_ID.
  *   META_CAPI_TEST_EVENT_CODE  Opcional. Si está, TODO envío sale como evento
  *                              de prueba (Test Events) y se registra como tal.
  *                              Se configura solo en Preview.
@@ -33,6 +34,14 @@ export const VERSION_POR_DEFECTO = "v26.0";
 const TIMEOUT_MS = 8000;
 const MAX_ERROR = 200;
 
+/** Acepta `v26.0` o `26.0`; cualquier otra cosa cae a la versión por defecto. */
+export function normalizarVersion(cruda: string | undefined): string {
+  const v = (cruda ?? "").trim();
+  if (/^v\d+\.\d+$/.test(v)) return v;
+  if (/^\d+\.\d+$/.test(v)) return `v${v}`;
+  return VERSION_POR_DEFECTO;
+}
+
 export type ConfiguracionMeta =
   | {
       ok: true;
@@ -47,15 +56,17 @@ export type ConfiguracionMeta =
 /** Lee y valida la configuración. No registra ni devuelve el token en errores. */
 export function configuracionMeta(env: NodeJS.ProcessEnv = process.env): ConfiguracionMeta {
   const token = env.META_CAPI_ACCESS_TOKEN?.trim() ?? "";
-  const datasetId = env.META_DATASET_ID?.trim() ?? "";
-  const versionCruda = env.META_GRAPH_API_VERSION?.trim() ?? "";
+  // El dataset de Events Manager y el Pixel son el MISMO id. Si no se cargó
+  // META_DATASET_ID, se usa el del Pixel, que ya está configurado.
+  const datasetId =
+    env.META_DATASET_ID?.trim() || env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "";
   const testCode = env.META_CAPI_TEST_EVENT_CODE?.trim() || null;
 
   if (token === "" || !/^\d+$/.test(datasetId)) {
     return { ok: false, motivo: "sin_configuracion" };
   }
 
-  const version = /^v\d+\.\d+$/.test(versionCruda) ? versionCruda : VERSION_POR_DEFECTO;
+  const version = normalizarVersion(env.META_GRAPH_API_VERSION);
 
   if (!testCode && env.VERCEL_ENV !== "production") {
     return { ok: false, motivo: "live_fuera_de_produccion" };
