@@ -16,6 +16,7 @@ import { resumenPedido } from "@/lib/admin-mutaciones";
 import { ADMIN } from "@/lib/admin-content";
 import { agruparModelos } from "@/lib/modelos";
 import type { AjusteDetalle, PedidoDetalle } from "@/lib/admin-tipos";
+import BloqueMeta from "@/components/admin/BloqueMeta";
 import BotonArchivar from "@/components/admin/BotonArchivar";
 import FormularioAjuste from "@/components/admin/FormularioAjuste";
 import FormularioGestion from "@/components/admin/FormularioGestion";
@@ -145,6 +146,13 @@ export default function DetallePedido({
           onGuardado={onCambio}
         />
       </Bloque>
+
+      {/* Solo pedidos manuales: los web ya los reporta el Pixel. */}
+      {p.meta && (
+        <Bloque titulo={ADMIN.detalle.meta.titulo}>
+          <BloqueMeta key={`meta-${p.id}`} pedidoId={p.id} meta={p.meta} onEnviado={onCambio} />
+        </Bloque>
+      )}
 
       <Bloque titulo={ADMIN.detalle.ajustes.titulo}>
         <FormularioAjuste key={`ajuste-${p.id}`} pedidoId={p.id} onGuardado={onCambio} />

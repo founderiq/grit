@@ -160,6 +160,27 @@ landing compile y funcione; el checkout y el panel necesitan las de Supabase, y
 el Meta Pixel funciona con el ID por defecto si no se configura
 `NEXT_PUBLIC_META_PIXEL_ID`.
 
+### Meta Conversions API para pedidos manuales
+
+Los pedidos web se reportan solos: Pixel en el navegador + la integración
+"Conversions API with Meta" de Events Manager, que replica esos eventos del
+lado del servidor. Nada de eso cambia.
+
+Los pedidos **manuales** (cerrados por WhatsApp y cargados en `/admin`) se
+reportan a mano: en el detalle de un pedido manual y **Pagado** aparece el
+bloque **Meta** con el botón **Enviar venta a Meta**, que manda un `Purchase`
+server-side (`action_source: "chat"`, `event_id: purchase-<order_number>`).
+
+- Nunca se envía un pedido con `source = "web"` (lo bloquea el servidor).
+- Una venta se envía una sola vez: el estado vive en
+  `orders.metadata.meta_capi` y se reserva antes de llamar a Meta.
+- Con `META_CAPI_TEST_EVENT_CODE` (solo Preview) todo sale como Test Event y se
+  registra aparte; sin él, el envío real solo funciona en producción.
+- Variables obligatorias: `META_CAPI_ACCESS_TOKEN`, `META_DATASET_ID` y
+  `META_GRAPH_API_VERSION` (sin valores por defecto: si falta alguna, no se
+  envía nada y el panel muestra qué variable falta). Opcional:
+  `META_CAPI_TEST_EVENT_CODE`. Ver `.env.example`.
+
 > **Antes de publicar:** actualizá los datos reales en `lib/content.ts`
 > (`LINKS.whatsapp`, `LINKS.instagram`, `LINKS.contacto`) y la URL canónica en
 > `lib/structured-data.ts` (`SITE_URL`).
